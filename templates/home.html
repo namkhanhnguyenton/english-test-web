@@ -34,10 +34,10 @@
                     <i data-lucide="arrow-down" class="w-4 h-4"></i>
                 </a>
 
-                {% if is_admin %}
+                {% if is_staff %}
                 <a href="{{ url_for('admin_new_test') }}" class="px-5 py-3.5 bg-indigo-700/60 hover:bg-indigo-700/80 text-white font-medium rounded-xl border border-indigo-500/40 transition flex items-center space-x-2 text-sm">
                     <i data-lucide="file-up" class="w-4 h-4"></i>
-                    <span>Tải Lên Đề Mới (Admin)</span>
+                    <span>Tải Lên Đề Mới</span>
                 </a>
                 {% endif %}
             </div>

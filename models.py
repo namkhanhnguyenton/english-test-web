@@ -28,6 +28,12 @@ class User(db.Model):
     def is_admin(self):
         return self.role == 'admin'
 
+    def is_teacher(self):
+        return self.role == 'teacher'
+
+    def can_manage(self):
+        return self.role in ('admin', 'teacher')
+
 
 class Level(db.Model):
     __tablename__ = 'levels'

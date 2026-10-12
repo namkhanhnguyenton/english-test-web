@@ -34,12 +34,26 @@ def allowed_ppt_file(filename):
 def allowed_audio_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_AUDIO_EXTENSIONS
 
-def admin_required(f):
+def staff_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not session.get('user_id') or session.get('role') != 'admin':
-            flash('Vui lòng đăng nhập với tài khoản Quản trị viên (Admin).', 'warning')
+        if not session.get('user_id') or session.get('role') not in ('admin', 'teacher'):
+            flash('Vui lòng đăng nhập với tài khoản Quản trị viên hoặc Giáo viên.', 'warning')
             return redirect(url_for('admin_login', next=request.path))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Đồng nhất admin_required để cho phép cả Admin lẫn Giáo viên quản lý đề thi và bài làm
+admin_required = staff_required
+
+def admin_only_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('user_id'):
+            return redirect(url_for('admin_login', next=request.path))
+        if session.get('role') != 'admin':
+            flash('Chức năng này chỉ dành riêng cho Quản trị viên tối cao (Admin).', 'danger')
+            return redirect(url_for('admin_dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -140,6 +154,8 @@ def inject_globals():
         'all_levels': levels,
         'current_user': current_user,
         'is_admin': session.get('role') == 'admin',
+        'is_teacher': session.get('role') == 'teacher',
+        'is_staff': session.get('role') in ('admin', 'teacher'),
         'candidate_name': session.get('student_name'),
         'candidate_phone': session.get('student_phone'),
         'candidate_email': session.get('student_email')
@@ -333,9 +349,15 @@ def test_result(submission_id):
 # AUTHENTICATION ROUTES
 # ==========================================
 
+@app.route('/web/admin')
+def web_admin_alias():
+    """Hỗ trợ đường dẫn bí mật web/admin để vào thẳng quản trị."""
+    return redirect(url_for('admin_dashboard'))
+
+
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
-    if session.get('role') == 'admin':
+    if session.get('role') in ('admin', 'teacher'):
         return redirect(url_for('admin_dashboard'))
 
     if request.method == 'POST':
@@ -343,16 +365,17 @@ def admin_login():
         password = request.form.get('password', '').strip()
 
         user = User.query.filter_by(username=username).first()
-        if user and user.check_password(password) and user.is_admin():
+        if user and user.check_password(password) and user.can_manage():
             session['user_id'] = user.id
             session['username'] = user.username
             session['full_name'] = user.full_name
             session['role'] = user.role
-            flash(f'Chào mừng trở lại, {user.full_name}!', 'success')
+            role_text = "Quản trị viên (Admin)" if user.is_admin() else "Giáo viên"
+            flash(f'Chào mừng {role_text}: {user.full_name}!', 'success')
             next_url = request.args.get('next') or url_for('admin_dashboard')
             return redirect(next_url)
         else:
-            flash('Tên đăng nhập hoặc mật khẩu không chính xác (hoặc không có quyền Admin).', 'danger')
+            flash('Tên đăng nhập hoặc mật khẩu không chính xác (hoặc tài khoản không có quyền truy cập).', 'danger')
 
     return render_template('admin/login.html')
 
@@ -365,17 +388,18 @@ def admin_logout():
 
 
 # ==========================================
-# ADMIN DASHBOARD & MANAGEMENT ROUTES
+# ADMIN & TEACHER DASHBOARD & ROUTES
 # ==========================================
 
 @app.route('/admin')
 @admin_required
 def admin_dashboard():
-    """Trang thống kê tổng quan dành cho Admin."""
+    """Trang thống kê tổng quan dành cho Quản trị viên và Giáo viên."""
     total_levels = Level.query.count()
     total_tests = Test.query.count()
     total_questions = Question.query.count()
     total_submissions = Submission.query.count()
+    total_teachers = User.query.filter_by(role='teacher').count()
     
     avg_score = 0
     if total_submissions > 0:
@@ -391,10 +415,116 @@ def admin_dashboard():
         total_tests=total_tests,
         total_questions=total_questions,
         total_submissions=total_submissions,
+        total_teachers=total_teachers,
         avg_score=avg_score,
         recent_submissions=recent_submissions,
         tests=tests
     )
+
+
+# ==========================================
+# TEACHER MANAGEMENT (ADMIN EXCLUSIVE)
+# ==========================================
+
+@app.route('/admin/teachers', methods=['GET', 'POST'])
+@admin_only_required
+def admin_teachers():
+    """Quản lý danh sách giáo viên: Xem và cấp tài khoản giáo viên mới (Chỉ Admin)."""
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip().lower()
+        full_name = request.form.get('full_name', '').strip()
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '').strip()
+
+        if not username or not full_name or not password:
+            flash('Vui lòng điền đầy đủ Tên đăng nhập, Họ tên và Mật khẩu.', 'danger')
+        elif len(password) < 4:
+            flash('Mật khẩu giáo viên phải có ít nhất 4 ký tự.', 'danger')
+        elif User.query.filter_by(username=username).first():
+            flash(f'Tên đăng nhập "{username}" đã tồn tại. Vui lòng chọn tên khác.', 'warning')
+        else:
+            teacher = User(
+                username=username,
+                full_name=full_name,
+                email=email if email else None,
+                role='teacher'
+            )
+            teacher.set_password(password)
+            db.session.add(teacher)
+            db.session.commit()
+            flash(f'Đã cấp tài khoản Giáo viên mới thành công cho: {full_name} (@{username})!', 'success')
+            return redirect(url_for('admin_teachers'))
+
+    teachers = User.query.filter_by(role='teacher').order_by(User.created_at.desc()).all()
+    return render_template('admin/teachers.html', teachers=teachers)
+
+
+@app.route('/admin/teachers/<int:teacher_id>/change-password', methods=['POST'])
+@admin_only_required
+def admin_change_teacher_password(teacher_id):
+    """Admin thay đổi mật khẩu cho giáo viên."""
+    teacher = User.query.get_or_404(teacher_id)
+    if teacher.role != 'teacher':
+        flash('Chỉ có thể đổi mật khẩu cho tài khoản Giáo viên tại đây.', 'warning')
+        return redirect(url_for('admin_teachers'))
+
+    new_password = request.form.get('new_password', '').strip()
+    if not new_password or len(new_password) < 4:
+        flash('Mật khẩu mới phải có ít nhất 4 ký tự.', 'danger')
+    else:
+        teacher.set_password(new_password)
+        db.session.commit()
+        flash(f'Đã đổi mật khẩu thành công cho Giáo viên: {teacher.full_name} (@{teacher.username})!', 'success')
+
+    return redirect(url_for('admin_teachers'))
+
+
+@app.route('/admin/teachers/<int:teacher_id>/delete', methods=['POST'])
+@admin_only_required
+def admin_delete_teacher(teacher_id):
+    """Admin xóa tài khoản giáo viên."""
+    teacher = User.query.get_or_404(teacher_id)
+    if teacher.id == session.get('user_id'):
+        flash('Không thể tự xóa tài khoản của chính mình!', 'danger')
+        return redirect(url_for('admin_teachers'))
+
+    if teacher.role != 'teacher':
+        flash('Không thể xóa tài khoản Quản trị viên tối cao.', 'danger')
+        return redirect(url_for('admin_teachers'))
+
+    teacher_name = teacher.full_name
+    db.session.delete(teacher)
+    db.session.commit()
+    flash(f'Đã xóa tài khoản giáo viên: {teacher_name} thành công.', 'info')
+    return redirect(url_for('admin_teachers'))
+
+
+@app.route('/admin/change-password', methods=['GET', 'POST'])
+@staff_required
+def admin_change_password():
+    """Đổi mật khẩu tài khoản hiện tại (Cả Admin và Giáo viên đều có thể tự đổi)."""
+    user = User.query.get(session.get('user_id'))
+    if not user:
+        return redirect(url_for('admin_logout'))
+
+    if request.method == 'POST':
+        old_password = request.form.get('old_password', '').strip()
+        new_password = request.form.get('new_password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
+
+        if not user.check_password(old_password):
+            flash('Mật khẩu hiện tại không chính xác. Vui lòng kiểm tra lại.', 'danger')
+        elif not new_password or len(new_password) < 4:
+            flash('Mật khẩu mới phải có ít nhất 4 ký tự.', 'danger')
+        elif new_password != confirm_password:
+            flash('Xác nhận mật khẩu mới không trùng khớp.', 'danger')
+        else:
+            user.set_password(new_password)
+            db.session.commit()
+            flash('Đổi mật khẩu thành công! Vui lòng ghi nhớ mật khẩu mới của bạn.', 'success')
+            return redirect(url_for('admin_dashboard'))
+
+    return render_template('admin/change_password.html', user=user)
 
 
 @app.route('/admin/levels', methods=['GET', 'POST'])

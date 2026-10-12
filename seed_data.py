@@ -132,6 +132,18 @@ def seed_database(app):
             admin.set_password('admin123')
             db.session.add(admin)
 
+        # 1.2 Teacher User (Mẫu)
+        teacher = User.query.filter_by(username='giaovien').first()
+        if not teacher:
+            teacher = User(
+                username='giaovien',
+                full_name='Cô Nguyễn Thu Hà (Giáo viên)',
+                email='giaovien@testenglish.vn',
+                role='teacher'
+            )
+            teacher.set_password('giaovien123')
+            db.session.add(teacher)
+
         # Demo regular user
         user = User.query.filter_by(username='hocvien1').first()
         if not user:

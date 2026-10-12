@@ -9,33 +9,53 @@
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
             <div class="flex items-center space-x-2">
-                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700">Admin Dashboard</span>
-                <span class="text-xs text-slate-400">• Quản lý toàn diện</span>
+                {% if is_admin %}
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700 flex items-center space-x-1">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5 inline"></i>
+                    <span>Quản trị viên Tối cao (Admin)</span>
+                </span>
+                {% else %}
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700 flex items-center space-x-1">
+                    <i data-lucide="graduation-cap" class="w-3.5 h-3.5 inline"></i>
+                    <span>Giáo viên Bộ môn</span>
+                </span>
+                {% endif %}
+                <span class="text-xs text-slate-400">• {{ current_user.full_name }}</span>
             </div>
             <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mt-1">
-                Tổng Quan Hệ Thống Test Tiếng Anh
+                {% if is_admin %}Bảng Điều Khiển Quản Trị Hệ Thống{% else %}Giao Diện Giáo Viên — Quản Lý Đề & Chấm Điểm{% endif %}
             </h1>
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
             <a href="{{ url_for('admin_new_test') }}" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm shadow-md shadow-indigo-100 transition flex items-center space-x-2">
                 <i data-lucide="plus-circle" class="w-4 h-4"></i>
-                <span>Thêm Đề Thi PPT Mới</span>
+                <span>Thêm Đề Thi PPT/MP3</span>
             </a>
             <a href="{{ url_for('admin_submissions') }}" class="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-xl text-sm transition flex items-center space-x-2">
                 <i data-lucide="users" class="w-4 h-4"></i>
-                <span>Xem Bài Làm User</span>
+                <span>Xem Bài Làm Thí Sinh</span>
+            </a>
+            {% if is_admin %}
+            <a href="{{ url_for('admin_teachers') }}" class="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-sm shadow-md shadow-purple-100 transition flex items-center space-x-2">
+                <i data-lucide="user-plus" class="w-4 h-4"></i>
+                <span>Quản Lý Giáo Viên</span>
             </a>
             <a href="{{ url_for('admin_levels') }}" class="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-xl text-sm transition flex items-center space-x-2">
                 <i data-lucide="layers" class="w-4 h-4"></i>
                 <span>Quản Lý Trình Độ</span>
             </a>
+            {% endif %}
+            <a href="{{ url_for('admin_change_password') }}" class="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-xl text-sm transition flex items-center space-x-2" title="Đổi mật khẩu">
+                <i data-lucide="key" class="w-4 h-4 text-slate-400"></i>
+                <span>Đổi Mật Khẩu</span>
+            </a>
         </div>
     </div>
 
 
-    <!-- 5 Stat Cards Grid -->
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+    <!-- Stat Cards Grid -->
+    <div class="grid grid-cols-2 {% if is_admin %}lg:grid-cols-6{% else %}lg:grid-cols-5{% endif %} gap-4 mb-8">
         <!-- 1. Trình độ -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
             <div class="flex items-center justify-between text-slate-400 mb-2">
@@ -73,11 +93,23 @@
                 <i data-lucide="check-check" class="w-5 h-5 text-violet-500"></i>
             </div>
             <p class="text-3xl font-extrabold text-violet-600">{{ total_submissions }}</p>
-            <p class="text-xs text-slate-400 mt-1">Bài test đã hoàn thành</p>
+            <p class="text-xs text-slate-400 mt-1">Bài test đã nộp</p>
         </div>
 
-        <!-- 5. Điểm trung bình -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm col-span-2 lg:col-span-1">
+        {% if is_admin %}
+        <!-- 5. Giáo viên (Chỉ Admin thấy) -->
+        <div class="bg-white p-5 rounded-2xl border border-purple-200 shadow-sm bg-gradient-to-br from-white to-purple-50/30">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-purple-600">Giáo Viên</span>
+                <i data-lucide="users" class="w-5 h-5 text-purple-600"></i>
+            </div>
+            <p class="text-3xl font-extrabold text-purple-700">{{ total_teachers }}</p>
+            <a href="{{ url_for('admin_teachers') }}" class="text-xs text-purple-600 font-semibold hover:underline mt-1 inline-block">Cấp tài khoản &rarr;</a>
+        </div>
+        {% endif %}
+
+        <!-- 6. Điểm trung bình -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm {% if not is_admin %}col-span-2 lg:col-span-1{% endif %}">
             <div class="flex items-center justify-between text-slate-400 mb-2">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Điểm TB</span>
                 <i data-lucide="bar-chart-3" class="w-5 h-5 text-amber-500"></i>

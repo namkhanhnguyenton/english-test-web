@@ -88,19 +88,54 @@
                     </button>
                     {% endif %}
 
-                    {% if is_admin %}
-                    <a href="{{ url_for('admin_dashboard') }}" class="inline-flex items-center space-x-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition border border-indigo-200">
-                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
-                        <span>Quản trị (Admin)</span>
-                    </a>
-                    <a href="{{ url_for('admin_logout') }}" class="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Đăng xuất">
-                        <i data-lucide="log-out" class="w-5 h-5"></i>
-                    </a>
+                    {% if is_staff %}
+                    <!-- Đã đăng nhập Quản trị viên / Giáo viên -->
+                    <div class="relative group">
+                        <button class="inline-flex items-center space-x-2 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs sm:text-sm font-bold rounded-xl transition border {% if is_admin %}bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100{% else %}bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100{% endif %}">
+                            <i data-lucide="{% if is_admin %}shield-check{% else %}graduation-cap{% endif %}" class="w-4 h-4"></i>
+                            <span>{% if is_admin %}Quản trị viên{% else %}GV: {{ current_user.full_name }}{% endif %}</span>
+                            <i data-lucide="chevron-down" class="w-3.5 h-3.5 opacity-60"></i>
+                        </button>
+                        <div class="absolute right-0 mt-1.5 w-60 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 hidden group-hover:block transition-all z-50 text-sm">
+                            <div class="px-4 py-2 border-b border-slate-100">
+                                <p class="font-bold text-slate-800 truncate">{{ current_user.full_name }}</p>
+                                <p class="text-xs text-slate-400">@{{ current_user.username }} • <span class="font-semibold {% if is_admin %}text-purple-600{% else %}text-indigo-600{% endif %}">{% if is_admin %}Admin tối cao{% else %}Giáo viên{% endif %}</span></p>
+                            </div>
+                            <a href="{{ url_for('admin_dashboard') }}" class="flex items-center space-x-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition">
+                                <i data-lucide="layout-dashboard" class="w-4 h-4 text-slate-400"></i>
+                                <span>Bảng điều khiển</span>
+                            </a>
+                            {% if is_admin %}
+                            <a href="{{ url_for('admin_teachers') }}" class="flex items-center space-x-2.5 px-4 py-2 text-purple-700 hover:bg-purple-50 font-semibold transition">
+                                <i data-lucide="users" class="w-4 h-4 text-purple-600"></i>
+                                <span>Quản lý Giáo viên</span>
+                            </a>
+                            {% endif %}
+                            <a href="{{ url_for('admin_tests') }}" class="flex items-center space-x-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition">
+                                <i data-lucide="file-presentation" class="w-4 h-4 text-slate-400"></i>
+                                <span>Kho Đề Thi PPT</span>
+                            </a>
+                            <a href="{{ url_for('admin_submissions') }}" class="flex items-center space-x-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition">
+                                <i data-lucide="clipboard-check" class="w-4 h-4 text-slate-400"></i>
+                                <span>Xem bài làm thí sinh</span>
+                            </a>
+                            <a href="{{ url_for('admin_levels') }}" class="flex items-center space-x-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition">
+                                <i data-lucide="layers" class="w-4 h-4 text-slate-400"></i>
+                                <span>Quản lý trình độ</span>
+                            </a>
+                            <div class="border-t border-slate-100 my-1"></div>
+                            <a href="{{ url_for('admin_change_password') }}" class="flex items-center space-x-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition">
+                                <i data-lucide="key" class="w-4 h-4 text-slate-400"></i>
+                                <span>Đổi mật khẩu</span>
+                            </a>
+                            <a href="{{ url_for('admin_logout') }}" class="flex items-center space-x-2.5 px-4 py-2 text-rose-600 hover:bg-rose-50 font-medium transition">
+                                <i data-lucide="log-out" class="w-4 h-4 text-rose-500"></i>
+                                <span>Đăng xuất</span>
+                            </a>
+                        </div>
+                    </div>
                     {% else %}
-                    <a href="{{ url_for('admin_login') }}" class="inline-flex items-center space-x-1.5 px-3.5 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition">
-                        <i data-lucide="shield" class="w-4 h-4"></i>
-                        <span>Đăng nhập Admin</span>
-                    </a>
+                    <!-- Khi chưa đăng nhập: Ẩn nút đăng nhập để người thi không nhìn thấy -->
                     {% endif %}
                 </div>
             </div>
@@ -154,7 +189,7 @@
             <div class="flex items-center space-x-6 text-xs text-slate-400">
                 <span>Hỗ trợ các cấp độ: A1 • A2 • B1 • B2 • IELTS</span>
                 <span>•</span>
-                <span>Tài khoản Admin mặc định: <code class="bg-slate-100 px-1 py-0.5 rounded text-slate-600">MINNO</code></span>
+                <span>Hệ thống thi trắc nghiệm & điền từ trực tuyến</span>
             </div>
         </div>
     </footer>

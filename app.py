@@ -25,6 +25,14 @@ app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads', '
 
 db.init_app(app)
 
+with app.app_context():
+    db.create_all()
+    try:
+        from seed_data import seed_database
+        seed_database(app)
+    except Exception as e:
+        logger.warning(f"Seed database on app init: {e}")
+
 ALLOWED_PPT_EXTENSIONS = {'ppt', 'pptx', 'pps', 'ppsx'}
 ALLOWED_AUDIO_EXTENSIONS = {'mp3', 'wav', 'ogg', 'm4a', 'aac'}
 
@@ -37,8 +45,15 @@ def allowed_audio_file(filename):
 def staff_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not session.get('user_id') or session.get('role') not in ('admin', 'teacher'):
+        user_id = session.get('user_id')
+        role = session.get('role')
+        if not user_id or role not in ('admin', 'teacher'):
             flash('Vui lòng đăng nhập với tài khoản Quản trị viên hoặc Giáo viên.', 'warning')
+            return redirect(url_for('admin_login', next=request.path))
+        user = User.query.get(user_id)
+        if not user or user.role not in ('admin', 'teacher'):
+            session.clear()
+            flash('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', 'warning')
             return redirect(url_for('admin_login', next=request.path))
         return f(*args, **kwargs)
     return decorated_function
@@ -49,9 +64,12 @@ admin_required = staff_required
 def admin_only_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not session.get('user_id'):
+        user_id = session.get('user_id')
+        if not user_id:
             return redirect(url_for('admin_login', next=request.path))
-        if session.get('role') != 'admin':
+        user = User.query.get(user_id)
+        if not user or user.role != 'admin':
+            session.clear()
             flash('Chức năng này chỉ dành riêng cho Quản trị viên tối cao (Admin).', 'danger')
             return redirect(url_for('admin_dashboard'))
         return f(*args, **kwargs)

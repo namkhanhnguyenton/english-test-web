@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block title %}Kết Quả & Đáp Án Thí Sinh — Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <div class="flex items-center space-x-2 text-xs text-slate-500 mb-4">
+        <a href="{{ url_for('admin_dashboard') }}" class="hover:text-indigo-600">Admin</a>
+        <span>/</span>
+        <span class="text-slate-800 font-bold">Quản Lý Bài Làm Thí Sinh</span>
+    </div>
+
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-extrabold text-slate-900">
+                Danh Sách Bài Nộp & Đáp Án Của Thí Sinh
+            </h1>
+            <p class="text-xs text-slate-500 mt-1">
+                Xem toàn bộ lịch sử test, số lượng câu đúng và chi tiết câu trả lời của từng học viên.
+            </p>
+        </div>
+
+        <div class="flex items-center space-x-2 text-xs font-semibold text-slate-500 bg-white px-3.5 py-2 rounded-xl border border-slate-200">
+            <i data-lucide="award" class="w-4 h-4 text-indigo-600"></i>
+            <span>Tổng cộng: <strong class="text-slate-900 font-bold">{{ submissions|length }}</strong> bài nộp</span>
+        </div>
+    </div>
+
+    <!-- Search & Filter Bar -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-4 mb-6 shadow-sm">
+        <form method="GET" action="{{ url_for('admin_submissions') }}" class="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <!-- Search Name -->
+            <div class="md:col-span-2">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </div>
+                    <input 
+                        type="text" 
+                        name="q" 
+                        value="{{ search_q }}" 
+                        placeholder="Tìm kiếm theo Tên, SĐT, hoặc Email thí sinh..." 
+                        class="w-full pl-9 pr-3.5 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium"
+                    >
+                </div>
+            </div>
+
+            <!-- Filter Level -->
+            <div>
+                <select name="level_id" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium" onchange="this.form.submit()">
+                    <option value="">-- Tất cả trình độ --</option>
+                    {% for lvl in levels %}
+                    <option value="{{ lvl.id }}" {% if selected_level == lvl.id %}selected{% endif %}>
+                        {{ lvl.code }} - {{ lvl.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Filter Test -->
+            <div class="flex items-center space-x-2">
+                <select name="test_id" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium" onchange="this.form.submit()">
+                    <option value="">-- Tất cả đề thi --</option>
+                    {% for t in tests %}
+                    <option value="{{ t.id }}" {% if selected_test == t.id %}selected{% endif %}>
+                        {{ t.title }}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% if search_q or selected_level or selected_test %}
+                <a href="{{ url_for('admin_submissions') }}" class="p-2 text-slate-400 hover:text-slate-600 text-xs rounded-lg hover:bg-slate-100" title="Bỏ lọc">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Submissions Table -->
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        {% if submissions %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-500 font-bold text-xs uppercase tracking-wider border-b border-slate-100">
+                        <th class="py-3.5 px-4"># ID</th>
+                        <th class="py-3.5 px-4">Thí Sinh (Tên / SĐT / Email)</th>
+                        <th class="py-3.5 px-4">Đề Thi / Cấp Độ</th>
+                        <th class="py-3.5 px-4 text-center">Số Câu Đúng</th>
+                        <th class="py-3.5 px-4 text-center">Tỷ Lệ %</th>
+                        <th class="py-3.5 px-4 text-center">Thời Gian Làm</th>
+                        <th class="py-3.5 px-4 text-center">Ngày Nộp</th>
+                        <th class="py-3.5 px-4 text-right">Xem Chi Tiết</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for sub in submissions %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-4 px-4 font-mono text-xs text-slate-400">#{{ sub.id }}</td>
+                        <td class="py-4 px-4">
+                            <div class="flex items-start space-x-2.5">
+                                <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    {{ sub.student_name[:1] }}
+                                </div>
+                                <div>
+                                    <p class="font-bold text-slate-900 text-sm leading-tight">{{ sub.student_name }}</p>
+                                    <div class="flex flex-col text-[11px] text-slate-500 mt-0.5 space-y-0.5">
+                                        {% if sub.student_phone %}
+                                        <span class="flex items-center space-x-1 font-mono text-slate-700">
+                                            <i data-lucide="phone" class="w-3 h-3 text-slate-400"></i>
+                                            <span>{{ sub.student_phone }}</span>
+                                        </span>
+                                        {% endif %}
+                                        {% if sub.student_email %}
+                                        <span class="flex items-center space-x-1 text-slate-400">
+                                            <i data-lucide="mail" class="w-3 h-3 text-slate-400"></i>
+                                            <span class="truncate max-w-[170px]">{{ sub.student_email }}</span>
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-700 mr-1.5">
+                                {{ sub.test.level.code }}
+                            </span>
+                            <span class="text-xs text-slate-800 font-medium">{{ sub.test.title }}</span>
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            <span class="text-base font-extrabold text-emerald-600 font-mono">
+                                {{ sub.correct_count }}
+                            </span>
+                            <span class="text-xs text-slate-400">/ {{ sub.total_questions }}</span>
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold
+                                {% if sub.is_passed %}bg-emerald-100 text-emerald-800{% else %}bg-rose-100 text-rose-800{% endif %}">
+                                {{ sub.percentage }}%
+                            </span>
+                        </td>
+                        <td class="py-4 px-4 text-center text-xs font-mono text-slate-600">
+                            {{ sub.formatted_time }}
+                        </td>
+                        <td class="py-4 px-4 text-center text-xs text-slate-400 font-mono">
+                            {{ sub.submitted_at.strftime('%H:%M • %d/%m/%Y') }}
+                        </td>
+                        <td class="py-4 px-4 text-right">
+                            <div class="flex items-center justify-end space-x-2">
+                                <a href="{{ url_for('admin_submission_detail', submission_id=sub.id) }}" class="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition" title="Xem chi tiết đáp án thí sinh đã điền">
+                                    <i data-lucide="file-check-2" class="w-3.5 h-3.5"></i>
+                                    <span>Xem Đáp Án</span>
+                                </a>
+                                
+                                <form method="POST" action="{{ url_for('admin_delete_submission', submission_id=sub.id) }}" onsubmit="return confirm('Bạn có chắc muốn xóa bài làm này?')" class="inline">
+                                    <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Xóa bài làm">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center text-slate-400">
+            <i data-lucide="file-x" class="w-12 h-12 mx-auto mb-3 opacity-60"></i>
+            <p class="text-base font-semibold text-slate-600">Không tìm thấy bài làm nào.</p>
+            <p class="text-xs text-slate-400 mt-1">Chưa có thí sinh nào hoàn thành bài thi tương ứng với bộ lọc.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+

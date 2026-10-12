@@ -1,0 +1,425 @@
+{% extends 'base.html' %}
+
+{% block title %}Thêm Đề Thi Bằng File PowerPoint & MP3 — Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Breadcrumb -->
+    <div class="flex items-center space-x-2 text-xs text-slate-500 mb-4">
+        <a href="{{ url_for('admin_dashboard') }}" class="hover:text-indigo-600">Admin</a>
+        <span>/</span>
+        <a href="{{ url_for('admin_tests') }}" class="hover:text-indigo-600">Quản lý Đề Thi</a>
+        <span>/</span>
+        <span class="text-slate-800 font-bold">Thêm Đề Mới (PPT + MP3)</span>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-6 md:p-10">
+        
+        <div class="mb-8 pb-6 border-b border-slate-100 flex items-start justify-between">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">
+                    Tạo Đề Thi Mới: PowerPoint + MP3 Nghe + Đáp Án Đa Dạng
+                </h1>
+                <p class="text-slate-500 text-sm mt-1">
+                    Tải lên file slide PPT, kèm file âm thanh MP3 cho phần nghe (nếu có), và thiết lập đáp án trắc nghiệm hoặc từ vựng/câu văn.
+                </p>
+            </div>
+            <div class="hidden sm:block">
+                <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <i data-lucide="file-presentation" class="w-6 h-6"></i>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('admin_new_test') }}" enctype="multipart/form-data" class="space-y-8" id="new-test-form">
+            
+            <!-- SECTION 1: Cấu hình chung -->
+            <div>
+                <h2 class="text-base font-bold text-slate-900 mb-4 flex items-center space-x-2">
+                    <span class="w-6 h-6 rounded-lg bg-indigo-600 text-white text-xs flex items-center justify-center font-bold">1</span>
+                    <span>Thông tin Đề Thi & Trình Độ</span>
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <!-- Trình độ -->
+                    <div>
+                        <label for="level_id" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Trình độ áp dụng <span class="text-rose-500">*</span>
+                        </label>
+                        <select name="level_id" id="level_id" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium text-sm">
+                            <option value="">-- Chọn trình độ tiếng Anh --</option>
+                            {% for lvl in levels %}
+                            <option value="{{ lvl.id }}">{{ lvl.code }} — {{ lvl.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Tiêu đề đề thi -->
+                    <div>
+                        <label for="title" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Tiêu đề đề thi <span class="text-rose-500">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            name="title" 
+                            id="title" 
+                            required 
+                            placeholder="Ví dụ: Đề số 03 - Ngữ Pháp & Luyện Nghe B1" 
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium text-sm"
+                        >
+                    </div>
+
+                    <!-- Thời gian làm bài -->
+                    <div>
+                        <label for="time_limit_minutes" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Thời gian làm bài (Phút)
+                        </label>
+                        <input 
+                            type="number" 
+                            name="time_limit_minutes" 
+                            id="time_limit_minutes" 
+                            value="15" 
+                            min="1" 
+                            max="180" 
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium text-sm"
+                        >
+                    </div>
+
+                    <!-- Tỷ lệ đỗ -->
+                    <div>
+                        <label for="pass_percentage" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Tỷ lệ đạt chuẩn (%)
+                        </label>
+                        <input 
+                            type="number" 
+                            name="pass_percentage" 
+                            id="pass_percentage" 
+                            value="50" 
+                            min="10" 
+                            max="100" 
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium text-sm"
+                        >
+                    </div>
+
+                    <!-- Mô tả tóm tắt -->
+                    <div class="md:col-span-2">
+                        <label for="description" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Mô tả / Hướng dẫn thêm cho thí sinh
+                        </label>
+                        <textarea 
+                            name="description" 
+                            id="description" 
+                            rows="2" 
+                            placeholder="Ví dụ: Đề thi kết hợp xem slide và nghe audio. Hãy đeo tai nghe và hoàn thành phiếu làm bài." 
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium text-sm"
+                        ></textarea>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- SECTION 2: Tải lên File PowerPoint (.pptx) & File Âm Thanh MP3 -->
+            <div>
+                <h2 class="text-base font-bold text-slate-900 mb-4 flex items-center space-x-2">
+                    <span class="w-6 h-6 rounded-lg bg-indigo-600 text-white text-xs flex items-center justify-center font-bold">2</span>
+                    <span>Tải Lên File Đề Thi (PowerPoint & File Nghe MP3)</span>
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    
+                    <!-- File PPTX (Bắt buộc) -->
+                    <div class="border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-2xl p-6 text-center bg-slate-50/50 hover:bg-indigo-50/30 transition-all cursor-pointer relative">
+                        <input 
+                            type="file" 
+                            name="ppt_file" 
+                            id="ppt_file" 
+                            accept=".pptx,.ppt,.pps,.ppsx" 
+                            required 
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            onchange="handleFileSelected(this, 'upload-ppt-label')"
+                        >
+                        <div class="pointer-events-none">
+                            <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 mx-auto flex items-center justify-center mb-3">
+                                <i data-lucide="file-presentation" class="w-6 h-6"></i>
+                            </div>
+                            <p class="font-bold text-slate-800 text-sm" id="upload-ppt-label">
+                                Tải lên File PowerPoint (.pptx, .ppt) <span class="text-rose-500">*</span>
+                            </p>
+                            <p class="text-xs text-slate-400 mt-1">
+                                Tự động chuyển đổi thành ảnh slide chiếu
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- File MP3 / Audio (Tùy chọn) -->
+                    <div class="border-2 border-dashed border-slate-300 hover:border-rose-400 rounded-2xl p-6 text-center bg-slate-50/50 hover:bg-rose-50/30 transition-all cursor-pointer relative">
+                        <input 
+                            type="file" 
+                            name="audio_file" 
+                            id="audio_file" 
+                            accept=".mp3,.wav,.m4a,.ogg,.aac" 
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            onchange="handleAudioSelected(this, 'upload-audio-label')"
+                        >
+                        <div class="pointer-events-none">
+                            <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 mx-auto flex items-center justify-center mb-3">
+                                <i data-lucide="headphones" class="w-6 h-6"></i>
+                            </div>
+                            <p class="font-bold text-slate-800 text-sm" id="upload-audio-label">
+                                Tải lên File Nghe MP3 (.mp3, .wav)
+                            </p>
+                            <p class="text-xs text-slate-400 mt-1">
+                                (Tùy chọn) Dành cho đề thi có bài nghe Listening
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+
+            <!-- SECTION 3: Cấu hình Bảng Đáp Án (Trắc nghiệm, Từ vựng hoặc Cả câu) -->
+            <div>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                            <span class="w-6 h-6 rounded-lg bg-indigo-600 text-white text-xs flex items-center justify-center font-bold">3</span>
+                            <span>Cấu Hình Bảng Đáp Án Chuẩn</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Hỗ trợ đáp án là: <strong>Chữ cái trắc nghiệm (A, B, C, D)</strong>, <strong>Từ vựng</strong>, hoặc <strong>Cả một câu</strong>.
+                        </p>
+                    </div>
+
+                    <!-- Switch Tabs: Nhập nhanh / Nhập từng câu -->
+                    <div class="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+                        <button type="button" id="tab-btn-bulk" onclick="switchAnswerTab('bulk')" class="px-3 py-1.5 rounded-lg bg-white shadow-sm text-indigo-700 font-bold transition">
+                            ⚡ Nhập Nhanh (Bulk Paste)
+                        </button>
+                        <button type="button" id="tab-btn-detail" onclick="switchAnswerTab('detail')" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">
+                            📝 Chi Tiết Từng Câu
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab 1: Bulk Answer Paste -->
+                <div id="tab-bulk" class="bg-indigo-50/40 p-5 rounded-2xl border border-indigo-100">
+                    <label class="block text-xs font-bold text-indigo-950 uppercase tracking-wider mb-2">
+                        Dán danh sách đáp án vào ô bên dưới (mỗi câu 1 dòng hoặc theo số thứ tự):
+                    </label>
+                    <textarea 
+                        name="bulk_answers" 
+                        id="bulk_answers" 
+                        rows="5" 
+                        placeholder="Ví dụ mẫu đáp án đa dạng:
+1. A
+2. B
+3. elephant
+4. She has been studying English for two years.
+5. center / centre" 
+                        class="w-full p-3.5 font-mono text-sm bg-white border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500"
+                        oninput="parseBulkAnswers(this.value)"
+                    ></textarea>
+                    
+                    <div class="mt-3 flex flex-wrap items-center justify-between text-xs text-slate-500 gap-2">
+                        <span>💡 Mẹo: Hỗ trợ nhiều đáp án tương đương bằng dấu <code class="bg-white px-1 py-0.5 rounded border">/</code> (ví dụ: <code class="bg-white px-1 py-0.5 rounded border">center / centre</code> hoặc <code class="bg-white px-1 py-0.5 rounded border">don't / do not</code>).</span>
+                        <span id="bulk-detected-count" class="font-bold text-indigo-700">Đã nhận diện: 0 câu</span>
+                    </div>
+
+                    <!-- Live preview badges -->
+                    <div id="bulk-preview-badges" class="mt-3 flex flex-wrap gap-1.5 max-h-36 overflow-y-auto"></div>
+                </div>
+
+                <!-- Tab 2: Detailed Questions Builder -->
+                <div id="tab-detail" class="hidden space-y-3">
+                    <div class="flex items-center justify-between pb-2">
+                        <span class="text-xs text-slate-500">Chỉnh sửa định dạng (Trắc nghiệm hoặc Điền từ/câu) và đáp án cho từng câu:</span>
+                        <button type="button" onclick="addQuestionRow()" class="px-3 py-1 text-xs font-bold bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition flex items-center space-x-1">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                            <span>Thêm câu hỏi</span>
+                        </button>
+                    </div>
+
+                    <input type="hidden" name="question_count" id="question_count" value="5">
+
+                    <div id="questions-detail-container" class="space-y-3">
+                        <!-- Default rows generated via JS -->
+                    </div>
+                </div>
+
+            </div>
+
+
+            <!-- Submit Button Bar -->
+            <div class="pt-6 border-t border-slate-200 flex items-center justify-between">
+                <a href="{{ url_for('admin_tests') }}" class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50 text-sm transition">
+                    Hủy bỏ
+                </a>
+
+                <button 
+                    type="submit" 
+                    id="submit-create-btn"
+                    class="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all flex items-center space-x-2"
+                >
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    <span>Tải Lên & Tạo Đề Thi Hoàn Chỉnh</span>
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function handleFileSelected(input, labelId) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            document.getElementById(labelId).innerHTML = `
+                <span class="text-indigo-600 font-bold">📄 Đã chọn PPT: ${file.name}</span>
+                <span class="text-slate-400 block text-xs mt-1">(${(file.size / (1024*1024)).toFixed(2)} MB)</span>
+            `;
+            const titleInput = document.getElementById('title');
+            if (!titleInput.value) {
+                const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
+                titleInput.value = cleanName;
+            }
+        }
+    }
+
+    function handleAudioSelected(input, labelId) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            document.getElementById(labelId).innerHTML = `
+                <span class="text-rose-600 font-bold">🎧 Đã chọn MP3: ${file.name}</span>
+                <span class="text-slate-400 block text-xs mt-1">(${(file.size / (1024*1024)).toFixed(2)} MB)</span>
+            `;
+        }
+    }
+
+    function switchAnswerTab(tab) {
+        if (tab === 'bulk') {
+            document.getElementById('tab-bulk').classList.remove('hidden');
+            document.getElementById('tab-detail').classList.add('hidden');
+            document.getElementById('tab-btn-bulk').className = "px-3 py-1.5 rounded-lg bg-white shadow-sm text-indigo-700 font-bold transition";
+            document.getElementById('tab-btn-detail').className = "px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition";
+        } else {
+            document.getElementById('tab-bulk').classList.add('hidden');
+            document.getElementById('tab-detail').classList.remove('hidden');
+            document.getElementById('tab-btn-detail').className = "px-3 py-1.5 rounded-lg bg-white shadow-sm text-indigo-700 font-bold transition";
+            document.getElementById('tab-btn-bulk').className = "px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition";
+        }
+    }
+
+    function parseBulkAnswers(text) {
+        const badgesContainer = document.getElementById('bulk-preview-badges');
+        const countSpan = document.getElementById('bulk-detected-count');
+        badgesContainer.innerHTML = '';
+
+        if (!text.trim()) {
+            countSpan.innerText = 'Đã nhận diện: 0 câu';
+            return;
+        }
+
+        const lines = text.trim().split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        let items = [];
+
+        // Check if multiple lines
+        if (lines.length > 1) {
+            lines.forEach((line, idx) => {
+                const m = line.match(/^(\d+)[\.\s:\-]+(.*)$/);
+                let num = idx + 1;
+                let ans = line;
+                if (m) {
+                    num = parseInt(m[1]);
+                    ans = m[2].trim();
+                }
+                const isSingleMCQ = (ans.length <= 2 && /^[A-Za-z]+$/.test(ans));
+                items.push({ num, ans: isSingleMCQ ? ans.toUpperCase() : ans, isMCQ: isSingleMCQ });
+            });
+        } else {
+            // Single line tokens or 1A 2B
+            const singleLine = lines[0];
+            const numberedRegex = /(\d+)[\.\s:\-]*([A-Za-z0-9\s'/]+)/g;
+            const matches = [...singleLine.matchAll(/(\d+)[\.\s:\-]*([A-Za-z0-9_'/]+)/g)];
+            if (matches.length > 0) {
+                matches.forEach(m => {
+                    const num = parseInt(m[1]);
+                    const ans = m[2].trim();
+                    const isSingleMCQ = (ans.length <= 2 && /^[A-Za-z]+$/.test(ans));
+                    items.push({ num, ans: isSingleMCQ ? ans.toUpperCase() : ans, isMCQ: isSingleMCQ });
+                });
+            } else {
+                const words = singleLine.split(/\s+/);
+                words.forEach((w, idx) => {
+                    if (w) {
+                        const isSingleMCQ = (w.length <= 2 && /^[A-Za-z]+$/.test(w));
+                        items.push({ num: idx + 1, ans: isSingleMCQ ? w.toUpperCase() : w, isMCQ: isSingleMCQ });
+                    }
+                });
+            }
+        }
+
+        countSpan.innerText = `Đã nhận diện: ${items.length} câu`;
+
+        items.forEach(item => {
+            const span = document.createElement('span');
+            span.className = 'px-2 py-0.5 rounded border text-xs font-mono font-bold shadow-xs ' + 
+                (item.isMCQ ? 'bg-white text-indigo-700 border-indigo-200' : 'bg-amber-50 text-amber-900 border-amber-300');
+            const typeLabel = item.isMCQ ? 'Trắc nghiệm' : 'Từ/Câu';
+            span.innerText = `#${item.num}: ${item.ans} (${typeLabel})`;
+            badgesContainer.appendChild(span);
+        });
+    }
+
+    // Detailed rows generator
+    let detailCount = 5;
+    function renderDetailRows() {
+        const container = document.getElementById('questions-detail-container');
+        container.innerHTML = '';
+        for (let i = 1; i <= detailCount; i++) {
+            const row = document.createElement('div');
+            row.className = 'p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2';
+            row.innerHTML = `
+                <div class="flex flex-wrap items-center gap-3">
+                    <span class="w-7 h-7 rounded-lg bg-slate-900 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
+                        ${i}
+                    </span>
+
+                    <div class="w-44">
+                        <select name="q_type_${i}" class="w-full px-2.5 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-lg">
+                            <option value="single_choice" ${i <= 3 ? 'selected' : ''}>Trắc nghiệm (A, B, C, D)</option>
+                            <option value="text_input" ${i > 3 ? 'selected' : ''}>Điền từ vựng / Viết 1 câu</option>
+                        </select>
+                    </div>
+
+                    <div class="flex-1 min-w-[220px]">
+                        <input type="text" name="q_ans_${i}" placeholder="Đáp án đúng (A/B/C/D hoặc từ vựng, cả câu...)" class="w-full px-3 py-1.5 text-xs font-bold font-mono bg-white border border-slate-300 rounded-lg" value="${i <= 3 ? (i % 2 === 1 ? 'A' : 'B') : 'vocabulary'}">
+                    </div>
+
+                    <div class="w-24">
+                        <input type="number" name="q_slide_${i}" placeholder="Slide #" min="1" value="${i + 1}" class="w-full px-2 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-center" title="Slide số tương ứng">
+                    </div>
+                </div>
+
+                <div class="pl-10">
+                    <input type="text" name="q_exp_${i}" placeholder="Giải thích ngữ pháp / từ vựng (tùy chọn)" class="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-600">
+                </div>
+            `;
+            container.appendChild(row);
+        }
+        document.getElementById('question_count').value = detailCount;
+    }
+
+    function addQuestionRow() {
+        detailCount++;
+        renderDetailRows();
+    }
+
+    // Initial render
+    renderDetailRows();
+</script>
+{% endblock %}

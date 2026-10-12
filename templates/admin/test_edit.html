@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+
+{% block title %}Chỉnh Sửa Đề Thi — {{ test.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <div class="flex items-center space-x-2 text-xs text-slate-500 mb-4">
+        <a href="{{ url_for('admin_dashboard') }}" class="hover:text-indigo-600">Admin</a>
+        <span>/</span>
+        <a href="{{ url_for('admin_tests') }}" class="hover:text-indigo-600">Quản lý Đề Thi</a>
+        <span>/</span>
+        <span class="text-slate-800 font-bold">Chỉnh Sửa Đề #{{ test.id }}</span>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-6 md:p-10">
+        
+        <div class="mb-8 pb-6 border-b border-slate-100 flex items-start justify-between">
+            <div>
+                <h1 class="text-2xl font-extrabold text-slate-900">
+                    Chỉnh Sửa Đề Thi: {{ test.title }}
+                </h1>
+                <p class="text-slate-500 text-sm mt-1">
+                    Cập nhật file PPT, file nghe MP3, hoặc sửa đổi bảng đáp án (trắc nghiệm, từ vựng hoặc câu văn).
+                </p>
+            </div>
+            <a href="{{ url_for('take_test', test_id=test.id) }}" target="_blank" class="px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 font-semibold text-xs flex items-center space-x-1.5 hover:bg-indigo-100 transition">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                <span>Xem thử đề</span>
+            </a>
+        </div>
+
+        <form method="POST" action="{{ url_for('admin_edit_test', test_id=test.id) }}" enctype="multipart/form-data" class="space-y-8">
+            
+            <!-- Thông tin chung -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label for="level_id" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Trình độ áp dụng <span class="text-rose-500">*</span>
+                    </label>
+                    <select name="level_id" id="level_id" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium text-sm">
+                        {% for lvl in levels %}
+                        <option value="{{ lvl.id }}" {% if lvl.id == test.level_id %}selected{% endif %}>
+                            {{ lvl.code }} — {{ lvl.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="title" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Tiêu đề đề thi <span class="text-rose-500">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        name="title" 
+                        id="title" 
+                        value="{{ test.title }}" 
+                        required 
+                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium text-sm"
+                    >
+                </div>
+
+                <div>
+                    <label for="time_limit_minutes" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Thời gian làm bài (Phút)
+                    </label>
+                    <input 
+                        type="number" 
+                        name="time_limit_minutes" 
+                        id="time_limit_minutes" 
+                        value="{{ test.time_limit_minutes }}" 
+                        min="1" 
+                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium text-sm"
+                    >
+                </div>
+
+                <div>
+                    <label for="pass_percentage" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Tỷ lệ đạt chuẩn (%)
+                    </label>
+                    <input 
+                        type="number" 
+                        name="pass_percentage" 
+                        id="pass_percentage" 
+                        value="{{ test.pass_percentage }}" 
+                        min="1" 
+                        max="100" 
+                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium text-sm"
+                    >
+                </div>
+
+                <div class="md:col-span-2">
+                    <label for="description" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Mô tả / Hướng dẫn
+                    </label>
+                    <textarea 
+                        name="description" 
+                        id="description" 
+                        rows="2" 
+                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium text-sm"
+                    >{{ test.description or '' }}</textarea>
+                </div>
+
+                <!-- Thay thế file PPT (tùy chọn) -->
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        File PowerPoint hiện tại ({{ test.ppt_filename or 'Không có' }})
+                    </label>
+                    <p class="text-xs text-slate-500 mb-2">Chỉ tải file nếu muốn thay thế slide PPT cũ.</p>
+                    <input 
+                        type="file" 
+                        name="ppt_file" 
+                        accept=".pptx,.ppt" 
+                        class="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                    >
+                </div>
+
+                <!-- File Nghe MP3 (Listening) -->
+                <div class="bg-rose-50/50 p-4 rounded-2xl border border-rose-200">
+                    <label class="block text-xs font-bold text-rose-950 uppercase tracking-wider mb-1">
+                        File Âm Thanh Nghe MP3 (Listening Audio)
+                    </label>
+                    {% if test.audio_filepath %}
+                    <div class="mb-2 p-2 bg-white rounded-xl border border-rose-200 flex items-center justify-between">
+                        <div class="flex items-center space-x-2 truncate">
+                            <i data-lucide="headphones" class="w-4 h-4 text-rose-600 flex-shrink-0"></i>
+                            <span class="text-xs font-bold text-slate-800 truncate">{{ test.audio_filename or 'audio.mp3' }}</span>
+                        </div>
+                        <audio src="{{ url_for('static', filename=test.audio_filepath) }}" controls class="h-8 max-w-[200px]"></audio>
+                    </div>
+                    <label class="inline-flex items-center space-x-2 text-xs text-rose-700 font-medium cursor-pointer mb-2">
+                        <input type="checkbox" name="remove_audio" value="1" class="rounded text-rose-600">
+                        <span>Xóa file âm thanh này khỏi đề thi</span>
+                    </label>
+                    {% else %}
+                    <p class="text-xs text-slate-500 mb-2">Đề thi hiện chưa có file âm thanh nghe.</p>
+                    {% endif %}
+                    <div>
+                        <input 
+                            type="file" 
+                            name="audio_file" 
+                            accept=".mp3,.wav,.m4a,.ogg" 
+                            class="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-rose-100 file:text-rose-700 hover:file:bg-rose-200"
+                        >
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Bảng đáp án các câu hỏi -->
+            <div>
+                <h3 class="text-base font-bold text-slate-900 mb-2 flex items-center space-x-2">
+                    <i data-lucide="list-ordered" class="w-5 h-5 text-indigo-600"></i>
+                    <span>Bảng Đáp Án Các Câu Hỏi ({{ test.questions|length }} câu)</span>
+                </h3>
+                <p class="text-xs text-slate-500 mb-4">
+                    Bạn có thể chọn hình thức trắc nghiệm A/B/C/D hoặc điền từ vựng / câu văn cho từng câu hỏi.
+                </p>
+
+                <div class="space-y-3">
+                    {% for q in test.questions %}
+                    <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                        <div class="flex flex-wrap items-center gap-3">
+                            <span class="w-8 h-8 rounded-xl bg-slate-900 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
+                                {{ q.question_number }}
+                            </span>
+
+                            <!-- Loại câu hỏi -->
+                            <div class="w-48">
+                                <label class="block text-[10px] text-slate-500 font-bold uppercase mb-0.5">Loại câu hỏi</label>
+                                <select name="q_type_{{ q.id }}" class="w-full px-2.5 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-lg">
+                                    <option value="single_choice" {% if q.question_type == 'single_choice' %}selected{% endif %}>
+                                        Trắc nghiệm (A, B, C, D)
+                                    </option>
+                                    <option value="text_input" {% if q.question_type == 'text_input' %}selected{% endif %}>
+                                        Điền từ vựng / Viết 1 câu
+                                    </option>
+                                </select>
+                            </div>
+
+                            <!-- Đáp án đúng (Chữ cái, từ vựng hoặc câu) -->
+                            <div class="flex-1 min-w-[220px]">
+                                <label class="block text-[10px] text-slate-500 font-bold uppercase mb-0.5">
+                                    Đáp án chính xác (chấp nhận / nếu có nhiều đáp án)
+                                </label>
+                                <input 
+                                    type="text" 
+                                    name="q_ans_{{ q.id }}" 
+                                    value="{{ q.correct_answer }}" 
+                                    required 
+                                    class="w-full px-3 py-1.5 text-xs font-mono font-bold bg-white border border-slate-300 rounded-lg"
+                                >
+                            </div>
+
+                            <!-- Slide số -->
+                            <div class="w-24">
+                                <label class="block text-[10px] text-slate-500 font-bold uppercase mb-0.5">Slide #</label>
+                                <input 
+                                    type="number" 
+                                    name="q_slide_{{ q.id }}" 
+                                    value="{{ q.slide_number }}" 
+                                    min="1" 
+                                    class="w-full px-2 py-1.5 text-xs bg-white border border-slate-300 rounded-lg text-center"
+                                >
+                            </div>
+                        </div>
+
+                        <div class="pl-11">
+                            <input 
+                                type="text" 
+                                name="q_exp_{{ q.id }}" 
+                                value="{{ q.explanation or '' }}" 
+                                placeholder="Giải thích ngữ pháp hoặc từ vựng..." 
+                                class="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-600"
+                            >
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="pt-6 border-t border-slate-200 flex items-center justify-between">
+                <a href="{{ url_for('admin_tests') }}" class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50 text-sm transition">
+                    Hủy bỏ
+                </a>
+
+                <button 
+                    type="submit" 
+                    class="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm shadow-md transition flex items-center space-x-2"
+                >
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                    <span>Lưu Thay Đổi Đề Thi</span>
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+
+{% block title %}Chi Tiết Bài Làm #{{ submission.id }} — Thí Sinh: {{ submission.student_name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Breadcrumb -->
+    <div class="flex items-center space-x-2 text-xs text-slate-500 mb-4">
+        <a href="{{ url_for('admin_dashboard') }}" class="hover:text-indigo-600">Admin</a>
+        <span>/</span>
+        <a href="{{ url_for('admin_submissions') }}" class="hover:text-indigo-600">Bài Làm Thí Sinh</a>
+        <span>/</span>
+        <span class="text-slate-800 font-bold">Chi Tiết Bài Nộp #{{ submission.id }}</span>
+    </div>
+
+    <!-- Student & Test Overview Card -->
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-8">
+        <div class="p-6 md:p-8 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            
+            <div class="flex items-start space-x-4">
+                <div class="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 font-extrabold text-xl flex items-center justify-center flex-shrink-0 border border-indigo-100">
+                    {{ submission.student_name[:1] }}
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2 mb-1">
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700">
+                            {{ test.level.code }} • {{ test.level.name }}
+                        </span>
+                        <span class="text-xs text-slate-400 font-mono">Bài làm #{{ submission.id }}</span>
+                    </div>
+                    <h1 class="text-2xl font-extrabold text-slate-900">
+                        {{ submission.student_name }}
+                    </h1>
+                    <div class="flex flex-wrap items-center gap-2.5 text-xs text-slate-600 mt-2">
+                        {% if submission.student_phone %}
+                        <a href="tel:{{ submission.student_phone }}" class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono font-bold hover:bg-emerald-100 transition" title="Nhấp để gọi">
+                            <i data-lucide="phone" class="w-3.5 h-3.5 text-emerald-600"></i>
+                            <span>{{ submission.student_phone }}</span>
+                        </a>
+                        {% endif %}
+                        {% if submission.student_email %}
+                        <a href="mailto:{{ submission.student_email }}" class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition" title="Nhấp để gửi email">
+                            <i data-lucide="mail" class="w-3.5 h-3.5 text-indigo-600"></i>
+                            <span>{{ submission.student_email }}</span>
+                        </a>
+                        {% endif %}
+                        <span class="text-slate-400">• Đề: <strong class="text-slate-700">{{ test.title }}</strong> • Nộp lúc: {{ submission.submitted_at.strftime('%H:%M:%S %d/%m/%Y') }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Score Badge -->
+            <div class="flex items-center space-x-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <div class="text-right">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Số câu trả lời đúng</p>
+                    <p class="text-3xl font-extrabold text-emerald-600">
+                        {{ submission.correct_count }} <span class="text-base text-slate-400 font-semibold">/ {{ submission.total_questions }} câu</span>
+                    </p>
+                </div>
+
+                <div class="h-10 w-px bg-slate-200"></div>
+
+                <div class="text-center">
+                    <span class="inline-block px-3 py-1 rounded-full text-xs font-extrabold
+                        {% if submission.is_passed %}bg-emerald-100 text-emerald-800 border border-emerald-200{% else %}bg-rose-100 text-rose-800 border border-rose-200{% endif %}">
+                        {{ submission.percentage }}% • {% if submission.is_passed %}ĐẠT{% else %}CHƯA ĐẠT{% endif %}
+                    </span>
+                    <p class="text-[11px] text-slate-400 font-mono mt-1">Làm trong: {{ submission.formatted_time }}</p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Metrics bar -->
+        <div class="px-6 py-3 bg-slate-50 flex flex-wrap items-center justify-between text-xs text-slate-500">
+            <div class="flex items-center space-x-6">
+                <span>Số câu đúng: <strong class="text-emerald-600 font-bold">{{ submission.correct_count }}</strong></span>
+                <span>Số câu sai: <strong class="text-rose-600 font-bold">{{ submission.wrong_count }}</strong></span>
+                <span>Chưa chọn: <strong class="text-slate-600 font-bold">{{ submission.unanswered_count }}</strong></span>
+                <span>Tổng điểm: <strong class="text-indigo-600 font-bold">{{ submission.score }}</strong></span>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button onclick="window.print()" class="text-indigo-600 hover:underline flex items-center space-x-1">
+                    <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                    <span>In phiếu kết quả</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Question by Question Breakdown -->
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-6 md:p-8">
+        <div class="mb-6 pb-4 border-b border-slate-100 flex items-center justify-between">
+            <div>
+                <h2 class="text-lg font-bold text-slate-900">Chi Tiết Từng Câu Thí Sinh Đã Điền</h2>
+                <p class="text-xs text-slate-500">Đối chiếu trực tiếp đáp án của thí sinh với đáp án hệ thống & slide PowerPoint tương ứng.</p>
+            </div>
+
+            <div class="flex items-center space-x-3 text-xs font-bold">
+                <span class="text-emerald-600">✓ {{ submission.correct_count }} Đúng</span>
+                <span class="text-rose-600">✗ {{ submission.wrong_count + submission.unanswered_count }} Sai</span>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            {% for ans in answers %}
+            <div class="p-4 rounded-2xl border transition-all
+                {% if ans.is_correct %}
+                bg-emerald-50/40 border-emerald-200
+                {% else %}
+                bg-rose-50/40 border-rose-200
+                {% endif %}">
+
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                    <div class="flex items-center space-x-3">
+                        <span class="w-7 h-7 rounded-xl font-bold text-xs flex items-center justify-center text-white
+                            {% if ans.is_correct %}bg-emerald-600{% else %}bg-rose-600{% endif %}">
+                            {{ ans.question_number }}
+                        </span>
+                        <span class="font-bold text-slate-900 text-sm">
+                            Câu số {{ ans.question_number }}
+                        </span>
+                        
+                        <!-- Slide preview pill -->
+                        {% if slides and ans.slide_number <= slides|length %}
+                        <button 
+                            type="button" 
+                            onclick="previewSlideModal('{{ url_for('static', filename=slides[ans.slide_number - 1]) }}', {{ ans.slide_number }})"
+                            class="inline-flex items-center space-x-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition"
+                            title="Nhấp để phóng to xem slide PowerPoint của câu này"
+                        >
+                            <i data-lucide="image" class="w-3.5 h-3.5"></i>
+                            <span>Xem Slide #{{ ans.slide_number }}</span>
+                        </button>
+                        {% else %}
+                        <span class="text-xs text-slate-400 font-mono">Slide #{{ ans.slide_number }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        {% if ans.is_correct %}
+                        <span class="inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                            <span>ĐÚNG (+{{ ans.points_awarded }} điểm)</span>
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800">
+                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                            <span>SAI (0 điểm)</span>
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Answer Comparison Table Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white/80 p-3.5 rounded-xl border border-slate-200/80">
+                    <!-- Đáp án thí sinh điền -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <span class="text-xs font-semibold text-slate-500">Đáp án thí sinh đã điền:</span>
+                        <span class="px-3 py-1 rounded-lg font-mono font-bold text-xs md:text-sm break-words max-w-full
+                            {% if ans.is_correct %}bg-emerald-100 text-emerald-800 border border-emerald-300
+                            {% elif ans.user_answer == '(Chưa chọn/điền)' %}bg-slate-100 text-slate-400 italic
+                            {% else %}bg-rose-100 text-rose-800 border border-rose-300{% endif %}">
+                            {{ ans.user_answer }}
+                        </span>
+                    </div>
+
+                    <!-- Đáp án chính xác -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <span class="text-xs font-semibold text-slate-500">Đáp án chuẩn hệ thống:</span>
+                        <span class="px-3 py-1 rounded-lg font-mono font-bold text-xs md:text-sm bg-emerald-600 text-white shadow-sm break-words max-w-full">
+                            {{ ans.correct_answer }}
+                        </span>
+                    </div>
+                </div>
+
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Back button -->
+        <div class="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
+            <a href="{{ url_for('admin_submissions') }}" class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50 text-sm transition flex items-center space-x-2">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                <span>Quay lại danh sách bài nộp</span>
+            </a>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Modal Slide Preview for Admin -->
+<div id="slide-preview-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" onclick="closeSlideModal()">
+    <div class="bg-white rounded-3xl max-w-4xl w-full p-4 shadow-2xl border border-slate-100 overflow-hidden" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between p-2 mb-2">
+            <h4 id="slide-modal-title" class="font-bold text-slate-800 text-sm">Slide Preview</h4>
+            <button onclick="closeSlideModal()" class="p-1 rounded-lg text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div class="bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center p-2">
+            <img id="slide-modal-img" src="" alt="Slide Preview" class="max-h-[75vh] max-w-full object-contain">
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function previewSlideModal(src, num) {
+        document.getElementById('slide-modal-img').src = src;
+        document.getElementById('slide-modal-title').innerText = `Slide PowerPoint Số #${num}`;
+        document.getElementById('slide-preview-modal').classList.remove('hidden');
+    }
+
+    function closeSlideModal() {
+        document.getElementById('slide-preview-modal').classList.add('hidden');
+    }
+</script>
+{% endblock %}
+

@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block title %}Bảng Điều Khiển Quản Trị — EnglishTestPro{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Header & Quick Action Buttons -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700">Admin Dashboard</span>
+                <span class="text-xs text-slate-400">• Quản lý toàn diện</span>
+            </div>
+            <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mt-1">
+                Tổng Quan Hệ Thống Test Tiếng Anh
+            </h1>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{{ url_for('admin_new_test') }}" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm shadow-md shadow-indigo-100 transition flex items-center space-x-2">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                <span>Thêm Đề Thi PPT Mới</span>
+            </a>
+            <a href="{{ url_for('admin_submissions') }}" class="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-xl text-sm transition flex items-center space-x-2">
+                <i data-lucide="users" class="w-4 h-4"></i>
+                <span>Xem Bài Làm User</span>
+            </a>
+            <a href="{{ url_for('admin_levels') }}" class="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-xl text-sm transition flex items-center space-x-2">
+                <i data-lucide="layers" class="w-4 h-4"></i>
+                <span>Quản Lý Trình Độ</span>
+            </a>
+        </div>
+    </div>
+
+
+    <!-- 5 Stat Cards Grid -->
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <!-- 1. Trình độ -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Trình độ</span>
+                <i data-lucide="award" class="w-5 h-5 text-indigo-500"></i>
+            </div>
+            <p class="text-3xl font-extrabold text-slate-900">{{ total_levels }}</p>
+            <p class="text-xs text-slate-400 mt-1">Cấp độ (A1, A2, B1...)</p>
+        </div>
+
+        <!-- 2. Đề thi PPT -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Kho Đề Thi</span>
+                <i data-lucide="file-presentation" class="w-5 h-5 text-emerald-500"></i>
+            </div>
+            <p class="text-3xl font-extrabold text-emerald-600">{{ total_tests }}</p>
+            <p class="text-xs text-slate-400 mt-1">File PowerPoint đã nạp</p>
+        </div>
+
+        <!-- 3. Tổng số câu hỏi -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Tổng Câu Hỏi</span>
+                <i data-lucide="help-circle" class="w-5 h-5 text-blue-500"></i>
+            </div>
+            <p class="text-3xl font-extrabold text-blue-600">{{ total_questions }}</p>
+            <p class="text-xs text-slate-400 mt-1">Câu hỏi có đáp án</p>
+        </div>
+
+        <!-- 4. Lượt làm bài -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Lượt Thí Sinh</span>
+                <i data-lucide="check-check" class="w-5 h-5 text-violet-500"></i>
+            </div>
+            <p class="text-3xl font-extrabold text-violet-600">{{ total_submissions }}</p>
+            <p class="text-xs text-slate-400 mt-1">Bài test đã hoàn thành</p>
+        </div>
+
+        <!-- 5. Điểm trung bình -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm col-span-2 lg:col-span-1">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Điểm TB</span>
+                <i data-lucide="bar-chart-3" class="w-5 h-5 text-amber-500"></i>
+            </div>
+            <p class="text-3xl font-extrabold text-amber-600">{{ avg_score }}%</p>
+            <p class="text-xs text-slate-400 mt-1">Tỷ lệ chính xác trung bình</p>
+        </div>
+    </div>
+
+
+    <!-- 2 Column Section: Recent Submissions + Recent Tests -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Recent Submissions (col-span-8) -->
+        <div class="lg:col-span-8 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="clock" class="w-5 h-5 text-indigo-600"></i>
+                    <h2 class="font-bold text-slate-900 text-base">Bài Làm Mới Nhất Của User</h2>
+                </div>
+                <a href="{{ url_for('admin_submissions') }}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">
+                    Xem tất cả bài nộp →
+                </a>
+            </div>
+
+            {% if recent_submissions %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-500 font-bold text-xs uppercase tracking-wider border-b border-slate-100">
+                            <th class="py-3 px-4">Thí sinh</th>
+                            <th class="py-3 px-4">Đề thi / Trình độ</th>
+                            <th class="py-3 px-4 text-center">Số câu đúng</th>
+                            <th class="py-3 px-4 text-center">Tỷ lệ</th>
+                            <th class="py-3 px-4 text-center">Thời gian</th>
+                            <th class="py-3 px-4 text-right">Chi tiết</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for sub in recent_submissions %}
+                        <tr class="hover:bg-slate-50/80 transition">
+                            <td class="py-3.5 px-4 font-bold text-slate-900">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
+                                        {{ sub.student_name[:1] }}
+                                    </div>
+                                    <span>{{ sub.student_name }}</span>
+                                </div>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="px-2 py-0.5 rounded text-xs font-bold bg-indigo-50 text-indigo-700 mr-1">{{ sub.test.level.code }}</span>
+                                <span class="text-xs text-slate-700 font-medium">{{ sub.test.title[:30] }}...</span>
+                            </td>
+                            <td class="py-3.5 px-4 text-center font-extrabold text-emerald-600">
+                                {{ sub.correct_count }} / {{ sub.total_questions }}
+                            </td>
+                            <td class="py-3.5 px-4 text-center">
+                                <span class="px-2 py-0.5 rounded-full text-xs font-bold
+                                    {% if sub.is_passed %}bg-emerald-100 text-emerald-800{% else %}bg-rose-100 text-rose-800{% endif %}">
+                                    {{ sub.percentage }}%
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4 text-center text-xs text-slate-400 font-mono">
+                                {{ sub.submitted_at.strftime('%H:%M %d/%m') }}
+                            </td>
+                            <td class="py-3.5 px-4 text-right">
+                                <a href="{{ url_for('admin_submission_detail', submission_id=sub.id) }}" class="inline-flex items-center space-x-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1.5 rounded-lg transition">
+                                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                    <span>Xem đáp án</span>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-8 text-center text-slate-400 text-sm">
+                Chưa có lượt làm bài nào. Hãy thử làm một bài test trên trang chủ!
+            </div>
+            {% endif %}
+        </div>
+
+
+        <!-- Tests Quick View (col-span-4) -->
+        <div class="lg:col-span-4 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="file-text" class="w-5 h-5 text-indigo-600"></i>
+                    <h2 class="font-bold text-slate-900 text-base">Đề Thi Gần Đây</h2>
+                </div>
+                <a href="{{ url_for('admin_tests') }}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">
+                    Xem tất cả →
+                </a>
+            </div>
+
+            <div class="p-4 space-y-3 flex-1 overflow-y-auto max-h-[460px]">
+                {% for t in tests %}
+                <div class="p-3.5 rounded-2xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/30 transition group">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-extrabold bg-slate-100 text-slate-700">
+                            {{ t.level.code }}
+                        </span>
+                        <span class="text-xs text-slate-400 font-mono">{{ t.total_questions }} câu hỏi</span>
+                    </div>
+                    <h4 class="font-bold text-slate-900 text-sm mb-2 group-hover:text-indigo-600 transition">
+                        {{ t.title }}
+                    </h4>
+                    <div class="flex items-center justify-between text-xs text-slate-500">
+                        <span>{{ t.total_slides }} slides PPT</span>
+                        <div class="flex items-center space-x-2">
+                            <a href="{{ url_for('take_test', test_id=t.id) }}" target="_blank" class="text-indigo-600 hover:underline">
+                                Xem thử
+                            </a>
+                            <span>•</span>
+                            <a href="{{ url_for('admin_edit_test', test_id=t.id) }}" class="text-slate-600 hover:text-slate-900">
+                                Sửa
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-100">
+                <a href="{{ url_for('admin_new_test') }}" class="w-full py-2.5 px-3 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition">
+                    <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                    <span>Tải thêm đề PowerPoint mới</span>
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+

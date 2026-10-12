@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block title %}Kết Quả Bài Thi — {{ test.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+
+    <!-- Result Summary Card -->
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden mb-8">
+        
+        <!-- Header Banner -->
+        <div class="p-8 md:p-10 text-center relative overflow-hidden
+            {% if submission.is_passed %}
+            bg-gradient-to-br from-emerald-600 via-teal-700 to-slate-900 text-white
+            {% else %}
+            bg-gradient-to-br from-rose-600 via-rose-700 to-slate-900 text-white
+            {% endif %}">
+            
+            <div class="relative z-10 max-w-xl mx-auto">
+                <div class="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg border-2 border-white/30 backdrop-blur-sm
+                    {% if submission.is_passed %}bg-emerald-500/40 text-white{% else %}bg-rose-500/40 text-white{% endif %}">
+                    {% if submission.is_passed %}
+                    <i data-lucide="award" class="w-10 h-10"></i>
+                    {% else %}
+                    <i data-lucide="rotate-ccw" class="w-10 h-10"></i>
+                    {% endif %}
+                </div>
+
+                <div class="inline-block px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-3 bg-white/20 backdrop-blur-sm">
+                    {{ test.level.code }} • {{ test.title }}
+                </div>
+
+                <h1 class="text-3xl md:text-4xl font-extrabold mb-2">
+                    {% if submission.is_passed %}
+                    Chúc Mừng Bạn Đã Đạt!
+                    {% else %}
+                    Chưa Đạt Yêu Cầu, Cố Lên Nhé!
+                    {% endif %}
+                </h1>
+                
+                <div class="text-white/90 text-sm md:text-base flex flex-wrap items-center justify-center gap-2 mt-2">
+                    <span>Thí sinh: <strong class="text-white font-bold">{{ submission.student_name }}</strong></span>
+                    {% if submission.student_phone %}
+                    <span>• SĐT: <strong class="text-amber-200 font-mono">{{ submission.student_phone }}</strong></span>
+                    {% endif %}
+                    {% if submission.student_email %}
+                    <span>• Email: <span class="text-indigo-200">{{ submission.student_email }}</span></span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Metric Numbers Grid -->
+        <div class="p-6 md:p-8 bg-slate-50 border-b border-slate-200">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                
+                <!-- SỐ CÂU ĐÚNG (Yêu cầu đề bài) -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Số Câu Trả Lời Đúng</p>
+                    <p class="text-3xl md:text-4xl font-extrabold text-emerald-600">
+                        {{ submission.correct_count }} <span class="text-lg text-slate-400 font-semibold">/ {{ submission.total_questions }}</span>
+                    </p>
+                    <p class="text-xs text-emerald-700 font-medium mt-1">câu đúng</p>
+                </div>
+
+                <!-- TỶ LỆ % -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tỷ Lệ Chính Xác</p>
+                    <p class="text-3xl md:text-4xl font-extrabold text-indigo-600">
+                        {{ submission.percentage }}%
+                    </p>
+                    <p class="text-xs text-indigo-700 font-medium mt-1">chuẩn chuẩn hóa</p>
+                </div>
+
+                <!-- SỐ CÂU SAI / CHƯA LÀM -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Câu Sai / Bỏ Qua</p>
+                    <p class="text-3xl md:text-4xl font-extrabold text-rose-500">
+                        {{ submission.wrong_count + submission.unanswered_count }}
+                    </p>
+                    <p class="text-xs text-rose-600 font-medium mt-1">{{ submission.wrong_count }} sai, {{ submission.unanswered_count }} chưa chọn</p>
+                </div>
+
+                <!-- THỜI GIAN LÀM BÀI -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Thời Gian Hoàn Thành</p>
+                    <p class="text-3xl md:text-4xl font-extrabold text-slate-800 font-mono">
+                        {{ submission.formatted_time }}
+                    </p>
+                    <p class="text-xs text-slate-500 font-medium mt-1">phút : giây</p>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Action Buttons Bar -->
+        <div class="p-6 bg-white flex flex-wrap items-center justify-between gap-4">
+            <a href="{{ url_for('home') }}" class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50 transition flex items-center space-x-2 text-sm">
+                <i data-lucide="home" class="w-4 h-4"></i>
+                <span>Trang chủ</span>
+            </a>
+
+            <div class="flex items-center space-x-3">
+                <button onclick="window.print()" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition flex items-center space-x-1.5">
+                    <i data-lucide="printer" class="w-4 h-4"></i>
+                    <span>In kết quả</span>
+                </button>
+                
+                <!-- Bốc đề ngẫu nhiên khác -->
+                <a href="{{ url_for('random_test_by_level', level_id=test.level_id) }}" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md shadow-indigo-100 transition flex items-center space-x-2 text-sm">
+                    <i data-lucide="shuffle" class="w-4 h-4"></i>
+                    <span>Làm đề ngẫu nhiên khác</span>
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- Detailed Answers Review Section -->
+    <div class="bg-white rounded-3xl border border-slate-200 p-6 md:p-8 shadow-sm">
+        <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+            <div>
+                <h2 class="text-xl font-bold text-slate-900">Chi Tiết Bảng Trả Lời & Đáp Án</h2>
+                <p class="text-xs text-slate-500">Đối chiếu từng câu trả lời của bạn với đáp án chính xác của đề thi</p>
+            </div>
+            
+            <div class="flex items-center space-x-4 text-xs font-semibold">
+                <span class="flex items-center space-x-1.5 text-emerald-700">
+                    <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                    <span>Đúng ({{ submission.correct_count }})</span>
+                </span>
+                <span class="flex items-center space-x-1.5 text-rose-700">
+                    <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                    <span>Sai ({{ submission.wrong_count + submission.unanswered_count }})</span>
+                </span>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            {% for ans in answers %}
+            {% set q = q_map.get(ans.question_id) %}
+            <div class="p-4 rounded-2xl border transition-all
+                {% if ans.is_correct %}
+                bg-emerald-50/40 border-emerald-200
+                {% else %}
+                bg-rose-50/40 border-rose-200
+                {% endif %}">
+
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <div class="flex items-center space-x-2.5">
+                        <span class="w-7 h-7 rounded-xl font-bold text-xs flex items-center justify-center text-white
+                            {% if ans.is_correct %}bg-emerald-600{% else %}bg-rose-600{% endif %}">
+                            {{ ans.question_number }}
+                        </span>
+                        <span class="font-bold text-slate-900 text-sm">
+                            Câu hỏi số {{ ans.question_number }}
+                        </span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">
+                            Slide tham chiếu: #{{ ans.slide_number }}
+                        </span>
+                    </div>
+
+                    <div>
+                        {% if ans.is_correct %}
+                        <span class="inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                            <span>Chính xác (+{{ ans.points_awarded }}đ)</span>
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800">
+                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                            <span>Chưa đúng (0đ)</span>
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if q and q.question_text %}
+                <p class="text-sm text-slate-700 mb-3 font-medium">{{ q.question_text }}</p>
+                {% endif %}
+
+                <!-- Answers comparison -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-200/60">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-sm bg-white/70 p-2.5 rounded-xl border border-slate-200/50">
+                        <span class="text-slate-500 text-xs font-semibold">Đáp án bạn điền:</span>
+                        <span class="px-3 py-1 rounded-lg font-bold font-mono text-xs md:text-sm break-words max-w-full
+                            {% if ans.is_correct %}bg-emerald-100 text-emerald-800 border border-emerald-300
+                            {% elif ans.user_answer == '(Chưa chọn/điền)' %}bg-slate-100 text-slate-500 border border-slate-200 italic
+                            {% else %}bg-rose-100 text-rose-800 border border-rose-300{% endif %}">
+                            {{ ans.user_answer }}
+                        </span>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-sm bg-white/70 p-2.5 rounded-xl border border-slate-200/50">
+                        <span class="text-slate-500 text-xs font-semibold">Đáp án chính xác:</span>
+                        <span class="px-3 py-1 rounded-lg font-bold font-mono text-xs md:text-sm bg-emerald-600 text-white shadow-sm break-words max-w-full">
+                            {{ ans.correct_answer }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Explanation if available -->
+                {% if q and q.explanation %}
+                <div class="mt-3 pt-2 text-xs text-slate-600 bg-white/80 p-2.5 rounded-xl border border-slate-200">
+                    <span class="font-bold text-slate-800">💡 Giải thích:</span> {{ q.explanation }}
+                </div>
+                {% endif %}
+
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+

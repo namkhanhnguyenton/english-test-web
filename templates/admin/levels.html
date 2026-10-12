@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Quản Lý Trình Độ Tiếng Anh — Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <div class="flex items-center space-x-2 text-xs text-slate-500 mb-4">
+        <a href="{{ url_for('admin_dashboard') }}" class="hover:text-indigo-600">Admin</a>
+        <span>/</span>
+        <span class="text-slate-800 font-bold">Quản Lý Trình Độ</span>
+    </div>
+
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-2xl font-extrabold text-slate-900">Các Cấp Độ Kiểm Tra Tiếng Anh</h1>
+            <p class="text-xs text-slate-500 mt-1">Quản lý danh sách các trình độ xuất hiện tại trang chủ (A1, A2, B1, IELTS...)</p>
+        </div>
+
+        <button onclick="document.getElementById('modal-add-level').classList.remove('hidden')" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm shadow-md shadow-indigo-100 transition flex items-center space-x-2">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Thêm Trình Độ Mới</span>
+        </button>
+    </div>
+
+    <!-- Levels Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for lvl in levels %}
+        <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <span class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold
+                        {% if lvl.badge_color == 'emerald' %}bg-emerald-100 text-emerald-800
+                        {% elif lvl.badge_color == 'blue' %}bg-blue-100 text-blue-800
+                        {% elif lvl.badge_color == 'indigo' %}bg-indigo-100 text-indigo-800
+                        {% elif lvl.badge_color == 'purple' %}bg-purple-100 text-purple-800
+                        {% elif lvl.badge_color == 'amber' %}bg-amber-100 text-amber-800
+                        {% else %}bg-slate-100 text-slate-800{% endif %}">
+                        <span>Mã: {{ lvl.code }}</span>
+                    </span>
+
+                    <span class="text-xs text-slate-400 font-mono">Thứ tự: #{{ lvl.order_num }}</span>
+                </div>
+
+                <h3 class="text-lg font-bold text-slate-900 mb-2">{{ lvl.name }}</h3>
+                <p class="text-xs text-slate-500 leading-relaxed mb-6">{{ lvl.description or 'Chưa có mô tả' }}</p>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+                <a href="{{ url_for('admin_tests', level_id=lvl.id) }}" class="text-xs font-bold text-indigo-600 hover:underline flex items-center space-x-1">
+                    <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                    <span>{{ lvl.tests|length }} đề thi</span>
+                </a>
+
+                <form method="POST" action="{{ url_for('admin_delete_level', level_id=lvl.id) }}" onsubmit="return confirm('Bạn có chắc chắn muốn xóa trình độ này cùng toàn bộ đề thi bên trong?')" class="inline">
+                    <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 transition" title="Xóa trình độ">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<!-- Modal Add Level -->
+<div id="modal-add-level" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 shadow-2xl border border-slate-100 animate-scale-in">
+        <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+            <h3 class="text-xl font-bold text-slate-900">Thêm Trình Độ Mới</h3>
+            <button onclick="document.getElementById('modal-add-level').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ url_for('admin_levels') }}" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mã trình độ (Code) *</label>
+                <input type="text" name="code" required placeholder="Ví dụ: C1, TOEIC, TOEFL" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold uppercase">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tên trình độ đầy đủ *</label>
+                <input type="text" name="name" required placeholder="Ví dụ: Trình độ C1 - Nâng cao (Advanced)" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Màu sắc hiển thị</label>
+                <select name="badge_color" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm">
+                    <option value="blue">Xanh dương (Blue)</option>
+                    <option value="emerald">Xanh lục (Emerald)</option>
+                    <option value="indigo">Chàm (Indigo)</option>
+                    <option value="purple">Tím (Purple)</option>
+                    <option value="amber">Vàng cam (Amber)</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Thứ tự hiển thị</label>
+                <input type="number" name="order_num" value="{{ levels|length + 1 }}" min="1" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mô tả ngắn</label>
+                <textarea name="description" rows="2" placeholder="Mô tả đối tượng phù hợp làm bài test..." class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm"></textarea>
+            </div>
+
+            <div class="pt-4 flex items-center justify-end space-x-3">
+                <button type="button" onclick="document.getElementById('modal-add-level').classList.add('hidden')" class="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-sm font-semibold">
+                    Hủy
+                </button>
+                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm shadow-md">
+                    Lưu trình độ
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

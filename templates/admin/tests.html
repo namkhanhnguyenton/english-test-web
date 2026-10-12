@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}Quản Lý Đề Thi — Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+            <div class="flex items-center space-x-2 text-xs text-slate-500 mb-1">
+                <a href="{{ url_for('admin_dashboard') }}" class="hover:text-indigo-600">Admin</a>
+                <span>/</span>
+                <span class="text-slate-800 font-bold">Quản Lý Đề Thi</span>
+            </div>
+            <h1 class="text-2xl font-extrabold text-slate-900">Danh Sách Đề Thi PowerPoint</h1>
+        </div>
+
+        <a href="{{ url_for('admin_new_test') }}" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm shadow-md shadow-indigo-100 transition flex items-center space-x-2">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Thêm Đề Thi Mới (PPT)</span>
+        </a>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-4 mb-6 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center space-x-2">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Lọc theo trình độ:</span>
+            <div class="flex flex-wrap gap-1.5">
+                <a href="{{ url_for('admin_tests') }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition {% if not current_level_id %}bg-indigo-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    Tất cả ({{ tests|length }})
+                </a>
+                {% for lvl in levels %}
+                <a href="{{ url_for('admin_tests', level_id=lvl.id) }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition {% if current_level_id == lvl.id %}bg-indigo-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    {{ lvl.code }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Tests Table -->
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        {% if tests %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-500 font-bold text-xs uppercase tracking-wider border-b border-slate-100">
+                        <th class="py-3.5 px-4"># ID</th>
+                        <th class="py-3.5 px-4">Trình độ</th>
+                        <th class="py-3.5 px-4">Tên Đề Thi / File PPT</th>
+                        <th class="py-3.5 px-4 text-center">Số Slide</th>
+                        <th class="py-3.5 px-4 text-center">Số Câu Hỏi</th>
+                        <th class="py-3.5 px-4 text-center">Thời Gian</th>
+                        <th class="py-3.5 px-4 text-center">Lượt Thi</th>
+                        <th class="py-3.5 px-4 text-right">Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for t in tests %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-4 px-4 font-mono text-xs text-slate-400">#{{ t.id }}</td>
+                        <td class="py-4 px-4">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold
+                                {% if t.level.badge_color == 'emerald' %}bg-emerald-100 text-emerald-800
+                                {% elif t.level.badge_color == 'blue' %}bg-blue-100 text-blue-800
+                                {% elif t.level.badge_color == 'indigo' %}bg-indigo-100 text-indigo-800
+                                {% elif t.level.badge_color == 'purple' %}bg-purple-100 text-purple-800
+                                {% elif t.level.badge_color == 'amber' %}bg-amber-100 text-amber-800
+                                {% else %}bg-slate-100 text-slate-800{% endif %}">
+                                {{ t.level.code }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-4 font-bold text-slate-900">
+                            <p class="text-sm">{{ t.title }}</p>
+                            <span class="text-xs text-slate-400 font-normal flex items-center space-x-1 mt-0.5">
+                                <i data-lucide="file" class="w-3.5 h-3.5 text-indigo-500"></i>
+                                <span>{{ t.ppt_filename or 'Chưa có file PPT' }}</span>
+                            </span>
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-xs font-mono font-bold">
+                                {{ t.total_slides }} slides
+                            </span>
+                        </td>
+                        <td class="py-4 px-4 text-center font-bold text-indigo-600 font-mono">
+                            {{ t.total_questions }} câu
+                        </td>
+                        <td class="py-4 px-4 text-center text-xs text-slate-500 font-mono">
+                            {{ t.time_limit_minutes }} phút
+                        </td>
+                        <td class="py-4 px-4 text-center">
+                            <a href="{{ url_for('admin_submissions', test_id=t.id) }}" class="text-xs font-semibold text-slate-600 hover:text-indigo-600 underline">
+                                {{ t.submissions|length }} lượt
+                            </a>
+                        </td>
+                        <td class="py-4 px-4 text-right">
+                            <div class="flex items-center justify-end space-x-2">
+                                <a href="{{ url_for('take_test', test_id=t.id) }}" target="_blank" class="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Làm thử bài thi">
+                                    <i data-lucide="external-link" class="w-4 h-4"></i>
+                                </a>
+                                <a href="{{ url_for('admin_edit_test', test_id=t.id) }}" class="p-2 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition" title="Chỉnh sửa">
+                                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                </a>
+                                <form method="POST" action="{{ url_for('admin_delete_test', test_id=t.id) }}" onsubmit="return confirm('Bạn có chắc chắn muốn xóa đề thi này? Tất cả bài nộp liên quan cũng sẽ bị xóa!')" class="inline">
+                                    <button type="submit" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Xóa đề thi">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center text-slate-400">
+            <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-3 opacity-60"></i>
+            <p class="text-base font-semibold text-slate-600">Không tìm thấy đề thi nào.</p>
+            <p class="text-xs text-slate-400 mt-1">Hãy nhấp nút "Thêm Đề Thi Mới" ở góc trên để tải lên đề PowerPoint đầu tiên.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+

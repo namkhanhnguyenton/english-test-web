@@ -1,0 +1,440 @@
+{% extends 'base.html' %}
+
+{% block title %}Tạo Đề Thi Trực Tuyến Tương Tác — Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Breadcrumb -->
+    <div class="flex items-center space-x-2 text-xs text-slate-500 mb-4">
+        <a href="{{ url_for('admin_dashboard') }}" class="hover:text-indigo-600">Admin</a>
+        <span>/</span>
+        <a href="{{ url_for('admin_tests') }}" class="hover:text-indigo-600">Quản lý Đề Thi</a>
+        <span>/</span>
+        <span class="text-slate-800 font-bold">Tạo Đề Trực Tuyến Tương Tác</span>
+    </div>
+
+    <!-- Format Switcher Banner -->
+    <div class="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-2xl p-4 mb-6 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white">
+                <i data-lucide="sparkles" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <p class="font-extrabold text-sm sm:text-base">Đề Thi Trực Tuyến Tương Tác (Không cần file slide)</p>
+                <p class="text-xs text-emerald-100">Hỗ trợ câu trắc nghiệm chọn đáp án & chọn từ thả xuống trong câu (dropdown cloze)</p>
+            </div>
+        </div>
+        <a href="{{ url_for('admin_new_test') }}" class="px-3.5 py-2 rounded-xl bg-white text-emerald-800 font-bold text-xs hover:bg-emerald-50 transition shadow-sm flex items-center space-x-1.5 self-start sm:self-auto">
+            <i data-lucide="file-presentation" class="w-4 h-4 text-emerald-600"></i>
+            <span>Đổi sang tạo đề bằng file PPT</span>
+        </a>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-6 md:p-10">
+        
+        <div class="mb-8 pb-6 border-b border-slate-100 flex items-start justify-between">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">
+                    Soạn Đề Thi Trực Tuyến
+                </h1>
+                <p class="text-slate-500 text-sm mt-1">
+                    Nhập câu hỏi trắc nghiệm hoặc câu văn có menu thả xuống để học sinh làm bài trực tiếp trên web.
+                </p>
+            </div>
+            <div class="hidden sm:block">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <i data-lucide="edit-3" class="w-6 h-6"></i>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('admin_new_test_interactive') }}" enctype="multipart/form-data" class="space-y-8" id="interactive-test-form">
+            
+            <!-- SECTION 1: Cấu hình chung -->
+            <div>
+                <h2 class="text-base font-bold text-slate-900 mb-4 flex items-center space-x-2">
+                    <span class="w-6 h-6 rounded-lg bg-emerald-600 text-white text-xs flex items-center justify-center font-bold">1</span>
+                    <span>Thông Tin Đề Thi & Cấu Hình</span>
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <!-- Trình độ -->
+                    <div>
+                        <label for="level_id" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Trình độ áp dụng <span class="text-rose-500">*</span>
+                        </label>
+                        <select name="level_id" id="level_id" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-medium text-sm">
+                            <option value="">-- Chọn Trình Độ --</option>
+                            {% for lvl in levels %}
+                            <option value="{{ lvl.id }}">
+                                {{ lvl.code }} - {{ lvl.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Tiêu đề đề thi -->
+                    <div>
+                        <label for="title" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Tên Đề Thi <span class="text-rose-500">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            name="title" 
+                            id="title" 
+                            required 
+                            placeholder="Ví dụ: Đề kiểm tra từ vựng công nghệ & giao tiếp"
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-medium text-sm"
+                        >
+                    </div>
+
+                    <!-- Thời gian làm bài -->
+                    <div>
+                        <label for="time_limit_minutes" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Thời gian làm bài (Phút)
+                        </label>
+                        <div class="relative">
+                            <input 
+                                type="number" 
+                                name="time_limit_minutes" 
+                                id="time_limit_minutes" 
+                                value="15" 
+                                min="1" 
+                                max="180" 
+                                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-medium text-sm"
+                            >
+                            <span class="absolute right-3.5 top-2.5 text-xs text-slate-400 font-medium">phút</span>
+                        </div>
+                    </div>
+
+                    <!-- Điểm đạt yêu cầu (%) -->
+                    <div>
+                        <label for="pass_percentage" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Tỷ lệ đạt chuẩn (%)
+                        </label>
+                        <div class="relative">
+                            <input 
+                                type="number" 
+                                name="pass_percentage" 
+                                id="pass_percentage" 
+                                value="50" 
+                                min="1" 
+                                max="100" 
+                                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-medium text-sm"
+                            >
+                            <span class="absolute right-3.5 top-2.5 text-xs text-slate-400 font-medium">%</span>
+                        </div>
+                    </div>
+
+                    <!-- Tải lên file MP3 / Âm thanh nghe (Tùy chọn) -->
+                    <div class="md:col-span-2">
+                        <label for="audio_file" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            File âm thanh nghe MP3 / Audio (Không bắt buộc)
+                        </label>
+                        <input 
+                            type="file" 
+                            name="audio_file" 
+                            id="audio_file" 
+                            accept=".mp3,.wav,.ogg,.m4a"
+                            class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
+                        >
+                        <p class="text-[11px] text-slate-400 mt-1">Dành cho các bài thi có phần Nghe hiểu (Listening). Hỗ trợ định dạng .mp3, .wav, .m4a.</p>
+                    </div>
+
+                    <!-- Mô tả ngắn -->
+                    <div class="md:col-span-2">
+                        <label for="description" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Mô tả đề thi / Ghi chú cho học sinh
+                        </label>
+                        <textarea 
+                            name="description" 
+                            id="description" 
+                            rows="2" 
+                            placeholder="Mô tả nội dung bài kiểm tra, ví dụ: 'Bài kiểm tra gồm 15 câu chọn từ điền chỗ trống và trắc nghiệm phản hồi câu.'"
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-medium text-sm"
+                        ></textarea>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- SECTION 2: Soạn câu hỏi -->
+            <div class="pt-6 border-t border-slate-100">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                            <span class="w-6 h-6 rounded-lg bg-emerald-600 text-white text-xs flex items-center justify-center font-bold">2</span>
+                            <span>Soạn Danh Sách Câu Hỏi</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Chọn nhập nhanh bằng văn bản hoặc tạo từng câu bằng form trực quan</p>
+                    </div>
+
+                    <!-- Tabs Selector -->
+                    <div class="flex items-center p-1 bg-slate-100 rounded-xl space-x-1 self-start sm:self-auto text-xs font-bold">
+                        <button type="button" onclick="switchInputMode('bulk')" id="tab-bulk" class="px-3 py-1.5 rounded-lg bg-white text-emerald-800 shadow-xs transition">
+                            ⚡ Nhập nhanh hàng loạt
+                        </button>
+                        <button type="button" onclick="switchInputMode('visual')" id="tab-visual" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">
+                            🛠️ Soạn từng câu trực quan
+                        </button>
+                    </div>
+                </div>
+
+                <!-- MODE 1: BULK IMPORT (NHẬP NHANH HÀNG LOẠT) -->
+                <div id="mode-bulk" class="space-y-4">
+                    <div class="bg-emerald-50/60 p-4 rounded-2xl border border-emerald-200/60">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-emerald-900 uppercase tracking-wider flex items-center space-x-1.5">
+                                <i data-lucide="help-circle" class="w-4 h-4 text-emerald-600"></i>
+                                <span>Cú pháp nhập mẫu cực kỳ đơn giản:</span>
+                            </span>
+                            <button type="button" onclick="loadSampleQuestions()" class="text-xs font-bold text-emerald-700 bg-white hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-300 transition flex items-center space-x-1">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                                <span>Nạp ví dụ mẫu (Ảnh 1 & 2)</span>
+                            </button>
+                        </div>
+                        <p class="text-xs text-emerald-800/90 leading-relaxed mb-2">
+                            • <strong>Dạng chọn từ thả xuống (như Ảnh 1):</strong> Viết câu văn có từ đúng đặt trong ngoặc vuông <code>[từ_đúng]</code>, dòng dưới ghi <code>options: từ1, từ2, từ3</code>.<br>
+                            • <strong>Dạng trắc nghiệm (như Ảnh 2):</strong> Viết câu hỏi, các dòng lựa chọn <code>A. ...</code>, <code>B. ...</code>, thêm dấu <code>*</code> vào cuối đáp án đúng.
+                        </p>
+                    </div>
+
+                    <textarea 
+                        name="bulk_questions" 
+                        id="bulk_questions" 
+                        rows="12" 
+                        placeholder="Dán nội dung các câu hỏi vào đây..."
+                        class="w-full p-4 bg-slate-50 border border-slate-300 rounded-2xl focus:ring-2 focus:ring-emerald-500 font-mono text-sm leading-relaxed"
+                    ></textarea>
+                </div>
+
+
+                <!-- MODE 2: VISUAL QUESTION BUILDER (SOẠN TỪNG CÂU TRỰC QUAN) -->
+                <div id="mode-visual" class="space-y-4 hidden">
+                    <input type="hidden" name="question_count" id="question_count" value="0">
+
+                    <div id="questions-list-builder" class="space-y-4">
+                        <!-- Questions will be added here dynamically -->
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3 pt-2">
+                        <button type="button" onclick="addVisualQuestion('dropdown_cloze')" class="px-4 py-2.5 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 font-bold rounded-xl text-xs transition flex items-center space-x-1.5">
+                            <i data-lucide="list-collapse" class="w-4 h-4 text-emerald-600"></i>
+                            <span>+ Thêm câu Chọn từ thả xuống (như ảnh 1)</span>
+                        </button>
+
+                        <button type="button" onclick="addVisualQuestion('single_choice')" class="px-4 py-2.5 bg-indigo-50 text-indigo-800 hover:bg-indigo-100 border border-indigo-200 font-bold rounded-xl text-xs transition flex items-center space-x-1.5">
+                            <i data-lucide="check-circle-2" class="w-4 h-4 text-indigo-600"></i>
+                            <span>+ Thêm câu Trắc nghiệm (như ảnh 2)</span>
+                        </button>
+
+                        <button type="button" onclick="addVisualQuestion('text_input')" class="px-4 py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 font-bold rounded-xl text-xs transition flex items-center space-x-1.5">
+                            <i data-lucide="text-cursor" class="w-4 h-4 text-slate-500"></i>
+                            <span>+ Thêm câu Điền từ / Viết câu</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+
+            <!-- SUBMIT BUTTON -->
+            <div class="pt-6 border-t border-slate-100 flex items-center justify-between">
+                <a href="{{ url_for('admin_tests') }}" class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-sm hover:bg-slate-50 transition">
+                    Hủy bỏ
+                </a>
+                
+                <button 
+                    type="submit" 
+                    class="px-7 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-sm shadow-lg shadow-emerald-600/30 hover:shadow-emerald-600/50 transition flex items-center space-x-2"
+                >
+                    <i data-lucide="check" class="w-5 h-5"></i>
+                    <span>Lưu & Kích Hoạt Đề Thi Trực Tuyến</span>
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+<script>
+    let currentInputMode = 'bulk';
+    let visualQuestionCounter = 0;
+
+    function switchInputMode(mode) {
+        currentInputMode = mode;
+        const bulkDiv = document.getElementById('mode-bulk');
+        const visualDiv = document.getElementById('mode-visual');
+        const tabBulk = document.getElementById('tab-bulk');
+        const tabVisual = document.getElementById('tab-visual');
+
+        if (mode === 'bulk') {
+            bulkDiv.classList.remove('hidden');
+            visualDiv.classList.add('hidden');
+            tabBulk.className = "px-3 py-1.5 rounded-lg bg-white text-emerald-800 shadow-xs transition";
+            tabVisual.className = "px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition";
+        } else {
+            bulkDiv.classList.add('hidden');
+            visualDiv.classList.remove('hidden');
+            tabVisual.className = "px-3 py-1.5 rounded-lg bg-white text-emerald-800 shadow-xs transition";
+            tabBulk.className = "px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition";
+
+            if (visualQuestionCounter === 0) {
+                // Thêm 2 câu mẫu trực quan
+                addVisualQuestion('dropdown_cloze', 'A power source such as a lithium-ion [battery] can be recharged easily.', 'battery', 'battery, network, voicemail, apps, ringtones');
+                addVisualQuestion('single_choice', 'Choose the best reply to each sentence: "Can you come to my farewell party tonight?"', "I'm sorry, I can't change my plans.", "I'm sorry, I can't change my plans.\nI didn't invite you.\nI have to leave early.");
+            }
+        }
+    }
+
+    function loadSampleQuestions() {
+        const sampleText = `1. A power source such as a lithium-ion [battery] can be recharged easily.
+options: battery, network, voicemail, apps, ringtones
+
+2. With [caller] ID, it is possible to see who is trying to phone you.
+options: caller, waiting, spam, text, data
+
+3. If you activate the call [waiting] you will hear a beep when someone else tries to call you.
+options: waiting, voicemail, ringtones, instant, attachment
+
+4. The phone was set to go to [voicemail] after 3 rings on the telephone.
+options: voicemail, battery, caller, scanning, apps
+
+5. There are so many musical [ringtones] that can be used for a cell phone these days.
+options: ringtones, network, spam, data, instant
+
+6. The device is programmed to access a 3G [network] to upload all schedules.
+options: network, battery, apps, voicemail, attachment
+
+7. Have you tried any of the cell phone [apps] for setting appointments?
+options: apps, ringtones, caller, scanning, UPC
+
+8. Jim tried to [text] his manager to let her know he would be late.
+options: text, call, instant, data, waiting
+
+9. He can make calls while driving by using [voice activation].
+options: voice activation, network, ringtones, spam, battery
+
+10. The company cell phones do not support this type of [data] plan.
+options: data, voicemail, UPC, apps, text
+
+11. Try to scan the [UPC] if you want to check what is in the shipment.
+options: UPC, data, barcode, package, label
+
+12. Due to problems with [scanning] barcodes, the shipping company couldn't dispatch parcels.
+options: scanning, reading, printing, making, losing
+
+13. To contact someone quickly try using [instant] messaging.
+options: instant, direct, phone, fast, email
+
+14. The document was sent as an [attachment] at the bottom of the email.
+options: attachment, file, image, paper, letter
+
+15. Any emails which are not recognized will be sent to the [spam] folder.
+options: spam, trash, junk, archive, draft
+
+16. Choose the best reply to each sentence: "Can you come to my party tomorrow?"
+A. I'm sorry, I can't change my plans. *
+B. I didn't invite you.
+C. I have to leave early.
+
+17. Choose the best reply to each sentence: "Would you like some coffee or tea?"
+A. A cup of coffee, please. *
+B. I don't like cup.
+C. Yes, it is coffee.`;
+
+        document.getElementById('bulk_questions').value = sampleText;
+        document.getElementById('title').value = "Test Từ Vựng Công Nghệ & Phản Hồi Câu (Interactive Test)";
+        document.getElementById('description').value = "Bài test gồm 15 câu chọn từ điền chỗ trống dạng menu thả xuống và các câu trắc nghiệm chọn câu trả lời phù hợp.";
+    }
+
+    function addVisualQuestion(type = 'single_choice', defaultText = '', defaultCorrect = '', defaultOptions = '') {
+        visualQuestionCounter++;
+        document.getElementById('question_count').value = visualQuestionCounter;
+
+        const container = document.getElementById('questions-list-builder');
+        const qCard = document.createElement('div');
+        qCard.className = "p-4 sm:p-5 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-3 relative group";
+        qCard.id = `visual-q-${visualQuestionCounter}`;
+
+        const isCloze = type === 'dropdown_cloze';
+        const isMcq = type === 'single_choice';
+
+        qCard.innerHTML = `
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <div class="flex items-center space-x-2">
+                    <span class="w-6 h-6 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center">
+                        ${visualQuestionCounter}
+                    </span>
+                    <span class="font-bold text-slate-800 text-sm">Câu hỏi số ${visualQuestionCounter}</span>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isCloze ? 'bg-emerald-100 text-emerald-800' : isMcq ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-700'}">
+                        ${isCloze ? 'Chọn từ thả xuống (Ảnh 1)' : isMcq ? 'Trắc nghiệm chọn đáp án (Ảnh 2)' : 'Điền từ / Viết câu'}
+                    </span>
+                    <input type="hidden" name="q_type_${visualQuestionCounter}" value="${type}">
+                </div>
+
+                <button type="button" onclick="removeVisualQuestion(${visualQuestionCounter})" class="p-1 text-slate-400 hover:text-rose-600 rounded transition" title="Xóa câu hỏi này">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    ${isCloze ? 'Nội dung câu văn (Đặt từ đúng trong ngoặc vuông, ví dụ: [battery])' : 'Nội dung câu hỏi / Yêu cầu'} <span class="text-rose-500">*</span>
+                </label>
+                <input 
+                    type="text" 
+                    name="q_text_${visualQuestionCounter}" 
+                    value="${defaultText}" 
+                    required 
+                    placeholder="${isCloze ? 'Ví dụ: A power source such as a lithium-ion [battery] can be recharged easily.' : 'Ví dụ: Choose the best reply to each sentence.'}"
+                    class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-medium"
+                >
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        Đáp án chính xác <span class="text-rose-500">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        name="q_correct_${visualQuestionCounter}" 
+                        value="${defaultCorrect}" 
+                        required 
+                        placeholder="Từ hoặc câu đúng..."
+                        class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-emerald-700"
+                    >
+                </div>
+
+                ${type !== 'text_input' ? `
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        Các phương án lựa chọn (phân cách bằng dấu phẩy hoặc xuống dòng)
+                    </label>
+                    <input 
+                        type="text" 
+                        name="q_options_${visualQuestionCounter}" 
+                        value="${defaultOptions}" 
+                        placeholder="Ví dụ: battery, network, voicemail, apps, ringtones"
+                        class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-medium"
+                    >
+                </div>
+                ` : ''}
+            </div>
+        `;
+
+        container.appendChild(qCard);
+        lucide.createIcons();
+    }
+
+    function removeVisualQuestion(id) {
+        const card = document.getElementById(`visual-q-${id}`);
+        if (card) {
+            card.remove();
+        }
+    }
+</script>
+{% endblock %}

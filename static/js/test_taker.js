@@ -277,6 +277,19 @@ function onAnswerSelected(questionId) {
     updateAnsweredCount();
 }
 
+function onAnswerSelect(questionId) {
+    const sel = document.getElementById(`select-q-${questionId}`);
+    const jumpBtn = document.getElementById(`jump-btn-${questionId}`);
+    if (sel && jumpBtn) {
+        if (sel.value.trim().length > 0) {
+            jumpBtn.classList.add('answered');
+        } else {
+            jumpBtn.classList.remove('answered');
+        }
+    }
+    updateAnsweredCount();
+}
+
 function onAnswerInput(questionId) {
     const input = document.getElementById(`input-q-${questionId}`);
     const jumpBtn = document.getElementById(`jump-btn-${questionId}`);
@@ -304,6 +317,14 @@ function updateAnsweredCount() {
     textInputs.forEach(input => {
         if (input.value.trim().length > 0) {
             answeredQuestions.add(input.name);
+        }
+    });
+
+    // 3. Dropdown selects chosen
+    const selectInputs = form.querySelectorAll('select[name^="question_"]');
+    selectInputs.forEach(sel => {
+        if (sel.value.trim().length > 0) {
+            answeredQuestions.add(sel.name);
         }
     });
 

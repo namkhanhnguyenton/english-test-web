@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import uuid
@@ -160,6 +161,147 @@ def parse_answers_string(bulk_text, total_slides=1):
                 })
 
     return questions
+
+
+def parse_interactive_questions(bulk_text):
+    """
+    Phân tích chuỗi văn bản câu hỏi trực tuyến tương tác:
+    1. Cloze dropdown (Ảnh 1): Câu văn chứa [từ_đúng] kèm dòng options: từ1, từ2, từ3
+    2. Trắc nghiệm chọn đáp án (Ảnh 2): Câu hỏi và các lựa chọn A. ..., B. ..., có dấu * hoặc Answer: ...
+    3. Điền từ vựng / viết câu: Câu hỏi và dòng Answer: ...
+    """
+    if not bulk_text or not bulk_text.strip():
+        return []
+
+    text = bulk_text.replace('\r\n', '\n').replace('\r', '\n').strip()
+    raw_chunks = re.split(r'\n\s*\n+', text)
+    chunks = [rc.strip() for rc in raw_chunks if rc.strip()]
+
+    parsed_questions = []
+
+    for idx, chunk in enumerate(chunks, start=1):
+        lines = [line.strip() for line in chunk.split('\n') if line.strip()]
+        if not lines:
+            continue
+
+        bracket_match = re.search(r'\[(.*?)\]', chunk)
+        mcq_option_pattern = re.compile(r'^([A-Fa-f])[\.\)\:\-]\s*(.*)$')
+        has_mcq_options = any(mcq_option_pattern.match(l) for l in lines)
+        
+        options_line = None
+        for l in lines:
+            if re.match(r'^(options|choices|lựa chọn|từ gợi ý|lua chon|tu goi y)\s*:\s*', l, re.IGNORECASE):
+                options_line = l
+                break
+
+        # 1. Dropdown cloze (chứa từ trong ngoặc vuông [word])
+        if bracket_match and (options_line or not has_mcq_options):
+            correct_word = bracket_match.group(1).strip()
+            sentence_lines = [l for l in lines if l != options_line]
+            sentence_text = " ".join(sentence_lines)
+            sentence_text = re.sub(r'^(?:Câu|Question|\#)?\s*\d+[\.\:\)\ counsel\/\-]\s*', '', sentence_text, flags=re.IGNORECASE).strip()
+
+            options = []
+            if options_line:
+                opts_part = re.sub(r'^(options|choices|lựa chọn|từ gợi ý|lua chon|tu goi y)\s*:\s*', '', options_line, re.IGNORECASE).strip()
+                options = [o.strip() for o in re.split(r'[,;|\/]', opts_part) if o.strip()]
+
+            if correct_word and not any(o.lower() == correct_word.lower() for o in options):
+                options.insert(0, correct_word)
+
+            parsed_questions.append({
+                'num': idx,
+                'question_text': sentence_text,
+                'question_type': 'dropdown_cloze',
+                'options': options,
+                'correct_answer': correct_word,
+                'points': 1.0,
+                'explanation': ''
+            })
+
+        # 2. Trắc nghiệm A, B, C, D (Ảnh 2)
+        elif has_mcq_options:
+            q_lines = []
+            options = []
+            correct_val = ''
+            
+            explicit_answer = None
+            for l in lines:
+                m_ans = re.match(r'^(?:Answer|Đáp án|Key|Dap an)\s*:\s*(.*)$', l, re.IGNORECASE)
+                if m_ans:
+                    explicit_answer = m_ans.group(1).strip()
+                    break
+
+            for l in lines:
+                if re.match(r'^(?:Answer|Đáp án|Key|Dap an)\s*:\s*', l, re.IGNORECASE):
+                    continue
+                m_opt = mcq_option_pattern.match(l)
+                if m_opt:
+                    opt_letter = m_opt.group(1).upper()
+                    opt_text = m_opt.group(2).strip()
+                    
+                    is_correct = False
+                    if opt_text.endswith('*'):
+                        is_correct = True
+                        opt_text = opt_text[:-1].strip()
+                    elif re.search(r'\[(?:correct|đúng|dung|v)\]$', opt_text, re.IGNORECASE):
+                        is_correct = True
+                        opt_text = re.sub(r'\[(?:correct|đúng|dung|v)\]$', '', opt_text, flags=re.IGNORECASE).strip()
+                    elif explicit_answer and (explicit_answer.upper() == opt_letter or explicit_answer.lower() == opt_text.lower()):
+                        is_correct = True
+
+                    options.append(opt_text)
+                    if is_correct:
+                        correct_val = opt_text
+                else:
+                    q_lines.append(l)
+
+            q_text = " ".join(q_lines)
+            q_text = re.sub(r'^(?:Câu|Question|\#)?\s*\d+[\.\:\)\ counsel\/\-]\s*', '', q_text, flags=re.IGNORECASE).strip()
+
+            if not correct_val and explicit_answer:
+                letter_idx = ord(explicit_answer.upper()[0]) - 65
+                if 0 <= letter_idx < len(options):
+                    correct_val = options[letter_idx]
+                else:
+                    correct_val = explicit_answer
+            elif not correct_val and options:
+                correct_val = options[0]
+
+            parsed_questions.append({
+                'num': idx,
+                'question_text': q_text or f"Câu hỏi số {idx}",
+                'question_type': 'single_choice',
+                'options': options,
+                'correct_answer': correct_val,
+                'points': 1.0,
+                'explanation': ''
+            })
+
+        # 3. Điền từ vựng / viết câu
+        else:
+            explicit_answer = ''
+            q_lines = []
+            for l in lines:
+                m_ans = re.match(r'^(?:Answer|Đáp án|Key|Dap an)\s*:\s*(.*)$', l, re.IGNORECASE)
+                if m_ans:
+                    explicit_answer = m_ans.group(1).strip()
+                else:
+                    q_lines.append(l)
+            q_text = " ".join(q_lines)
+            q_text = re.sub(r'^(?:Câu|Question|\#)?\s*\d+[\.\:\)\ counsel\/\-]\s*', '', q_text, flags=re.IGNORECASE).strip()
+            
+            parsed_questions.append({
+                'num': idx,
+                'question_text': q_text,
+                'question_type': 'text_input',
+                'options': [],
+                'correct_answer': explicit_answer or 'A',
+                'points': 1.0,
+                'explanation': ''
+            })
+
+    return parsed_questions
 
 
 @app.context_processor
@@ -737,6 +879,126 @@ def admin_new_test():
     return render_template('admin/test_new.html', levels=levels)
 
 
+@app.route('/admin/tests/new-interactive', methods=['GET', 'POST'])
+@admin_required
+def admin_new_test_interactive():
+    """
+    Tạo đề thi trực tuyến tương tác không cần file PowerPoint/PDF.
+    Hỗ trợ câu hỏi điền từ thả xuống trong câu (dropdown cloze - Ảnh 1)
+    và câu hỏi trắc nghiệm chọn câu trả lời (Ảnh 2).
+    """
+    levels = Level.query.filter_by(is_active=True).order_by(Level.order_num).all()
+
+    if request.method == 'POST':
+        level_id = request.form.get('level_id', type=int)
+        title = request.form.get('title', '').strip()
+        description = request.form.get('description', '').strip()
+        time_limit = int(request.form.get('time_limit_minutes', 15))
+        pass_percentage = int(request.form.get('pass_percentage', 50))
+        audio_file = request.files.get('audio_file')
+
+        if not level_id or not title:
+            flash('Vui lòng chọn trình độ và nhập tên đề thi.', 'danger')
+            return render_template('admin/test_new_interactive.html', levels=levels)
+
+        # Lưu audio nếu có
+        test_uuid = f"test_{uuid.uuid4().hex[:8]}"
+        test_folder = os.path.join(app.config['UPLOAD_FOLDER'], test_uuid)
+        os.makedirs(test_folder, exist_ok=True)
+
+        saved_audio_name = None
+        rel_audio_path = None
+        if audio_file and audio_file.filename != '' and allowed_audio_file(audio_file.filename):
+            audio_subfolder = os.path.join(test_folder, 'audio')
+            os.makedirs(audio_subfolder, exist_ok=True)
+            saved_audio_name = secure_filename(audio_file.filename)
+            audio_full_path = os.path.join(audio_subfolder, saved_audio_name)
+            audio_file.save(audio_full_path)
+            rel_audio_path = f"uploads/tests/{test_uuid}/audio/{saved_audio_name}"
+
+        # Phân tích danh sách câu hỏi
+        bulk_questions = request.form.get('bulk_questions', '').strip()
+        questions_list = []
+
+        if bulk_questions:
+            questions_list = parse_interactive_questions(bulk_questions)
+        else:
+            # Lấy từ giao diện soạn từng câu trực quan (Visual builder)
+            indices = []
+            for key in request.form:
+                if key.startswith('q_text_'):
+                    try:
+                        indices.append(int(key.split('_')[2]))
+                    except Exception:
+                        pass
+            indices.sort()
+            for idx, i in enumerate(indices, start=1):
+                q_text = request.form.get(f'q_text_{i}', '').strip()
+                if not q_text:
+                    continue
+                q_type = request.form.get(f'q_type_{i}', 'single_choice').strip()
+                q_correct = request.form.get(f'q_correct_{i}', '').strip()
+                q_options_raw = request.form.get(f'q_options_{i}', '').strip()
+                options = [o.strip() for o in re.split(r'[,;\n]', q_options_raw) if o.strip()]
+                if q_correct and not any(o.lower() == q_correct.lower() for o in options) and q_type != 'text_input':
+                    options.insert(0, q_correct)
+                questions_list.append({
+                    'num': idx,
+                    'question_text': q_text,
+                    'question_type': q_type,
+                    'options': options,
+                    'correct_answer': q_correct,
+                    'points': 1.0,
+                    'explanation': ''
+                })
+
+        if not questions_list:
+            flash('Vui lòng nhập nội dung câu hỏi cho đề thi!', 'warning')
+            return render_template('admin/test_new_interactive.html', levels=levels)
+
+        # Lưu Test
+        new_test = Test(
+            level_id=level_id,
+            title=title,
+            description=description,
+            test_format='interactive',
+            ppt_filename=None,
+            ppt_filepath=None,
+            slides_folder=None,
+            audio_filename=saved_audio_name,
+            audio_filepath=rel_audio_path,
+            total_slides=0,
+            time_limit_minutes=time_limit,
+            total_questions=len(questions_list),
+            pass_percentage=pass_percentage,
+            is_active=True
+        )
+        db.session.add(new_test)
+        db.session.commit()
+
+        # Lưu Questions
+        for item in questions_list:
+            q = Question(
+                test_id=new_test.id,
+                question_number=item['num'],
+                question_text=item['question_text'],
+                question_type=item.get('question_type', 'single_choice'),
+                options_json=json.dumps(item.get('options', [])),
+                correct_answer=item['correct_answer'],
+                slide_number=1,
+                points=item.get('points', 1.0),
+                explanation=item.get('explanation', '')
+            )
+            db.session.add(q)
+        db.session.commit()
+
+        has_audio_msg = " kèm file nghe MP3" if rel_audio_path else ""
+        flash(f'Tạo đề thi trực tuyến tương tác "{title}" thành công với {len(questions_list)} câu hỏi{has_audio_msg}!', 'success')
+        return redirect(url_for('admin_tests'))
+
+    return render_template('admin/test_new_interactive.html', levels=levels)
+
+
 @app.route('/admin/tests/<int:test_id>/edit', methods=['GET', 'POST'])
 @admin_required
 def admin_edit_test(test_id):
@@ -880,12 +1142,14 @@ def admin_submission_detail(submission_id):
             files.sort(key=lambda s: int(re.findall(r'\d+', s)[0]) if re.findall(r'\d+', s) else 0)
             slides = [f"{test.slides_folder}/{f}".replace('\\', '/') for f in files]
 
+    q_map = {q.id: q for q in test.questions}
     return render_template(
         'admin/submission_detail.html',
         submission=submission,
         test=test,
         answers=answers,
-        slides=slides
+        slides=slides,
+        q_map=q_map
     )
 
 

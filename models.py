@@ -14,7 +14,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     full_name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(120), nullable=True)
-    role = db.Column(db.String(20), default='user')  # 'admin' or 'user'
+    role = db.Column(db.String(20), default='user')  # 'admin', 'teacher', or 'user'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     submissions = db.relationship('Submission', backref='user', lazy=True)
@@ -62,6 +62,10 @@ class Test(db.Model):
     level_id = db.Column(db.Integer, db.ForeignKey('levels.id', ondelete='CASCADE'), nullable=False)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
+
+    # Định dạng đề thi: 'ppt' (Slide PowerPoint) hoặc 'interactive' (Đề trực tuyến tương tác không cần slide)
+    test_format = db.Column(db.String(30), default='ppt')
+
     ppt_filename = db.Column(db.String(255), nullable=True)      # Original filename
     ppt_filepath = db.Column(db.String(500), nullable=True)      # Relative or abs path to ppt file
     slides_folder = db.Column(db.String(500), nullable=True)     # Relative folder under static/ containing slide images
@@ -80,6 +84,11 @@ class Test(db.Model):
     questions = db.relationship('Question', backref='test', lazy=True, cascade='all, delete-orphan', order_by='Question.question_number')
     submissions = db.relationship('Submission', backref='test', lazy=True, cascade='all, delete-orphan')
 
+    @property
+    def is_interactive(self):
+        """Kiểm tra xem đề thi có phải là dạng trực tuyến tương tác không cần slide PPT không."""
+        return self.test_format == 'interactive' or not self.slides_folder or self.total_slides == 0
+
 
 class Question(db.Model):
     __tablename__ = 'questions'
@@ -88,10 +97,10 @@ class Question(db.Model):
     test_id = db.Column(db.Integer, db.ForeignKey('tests.id', ondelete='CASCADE'), nullable=False)
     question_number = db.Column(db.Integer, nullable=False)
     question_text = db.Column(db.Text, nullable=True)            # Prompt or question detail
-    question_type = db.Column(db.String(30), default='single_choice') # 'single_choice', 'text_input'
-    options_json = db.Column(db.Text, default='["A", "B", "C", "D"]') # Available choices
-    correct_answer = db.Column(db.String(255), nullable=False)   # E.g. "A" or "elephant" or "centre / center"
-    slide_number = db.Column(db.Integer, default=1)              # Associated PPT slide number
+    question_type = db.Column(db.String(30), default='single_choice') # 'single_choice', 'dropdown_cloze', 'text_input'
+    options_json = db.Column(db.Text, default='["A", "B", "C", "D"]') # Available choices or dropdown options
+    correct_answer = db.Column(db.String(255), nullable=False)   # E.g. "A" or "battery" or "I'm sorry, I can't change my plans."
+    slide_number = db.Column(db.Integer, default=1)              # Associated PPT slide number (if any)
     audio_file = db.Column(db.String(500), nullable=True)        # Optional question-specific audio clip
     points = db.Column(db.Float, default=1.0)
     explanation = db.Column(db.Text, nullable=True)
@@ -103,18 +112,32 @@ class Question(db.Model):
         except Exception:
             return ["A", "B", "C", "D"]
 
+    @property
+    def cloze_data(self):
+        """
+        Tách câu hỏi dropdown_cloze thành (before, placeholder, after).
+        Ví dụ: 'A power source such as a lithium-ion [battery] can be recharged easily.'
+        -> ('A power source such as a lithium-ion ', 'battery', ' can be recharged easily.')
+        """
+        if not self.question_text:
+            return ('', '', '')
+        parts = re.split(r'\[(.*?)\]', self.question_text)
+        if len(parts) >= 3:
+            return (parts[0], parts[1], parts[2])
+        return (self.question_text, '', '')
+
     def check_user_answer(self, user_ans):
         """
         Kiểm tra câu trả lời của học viên:
-        - Hỗ trợ trắc nghiệm A/B/C/D
-        - Hỗ trợ điền từ vựng (chính xác không phân biệt hoa/thường)
-        - Hỗ trợ viết 1 câu (chuẩn hóa khoảng trắng, dấu câu cuối câu)
+        - Hỗ trợ trắc nghiệm A/B/C/D hoặc câu văn đầy đủ
+        - Hỗ trợ điền từ dạng menu thả xuống (dropdown cloze)
+        - Hỗ trợ điền từ vựng / viết 1 câu
         - Hỗ trợ nhiều đáp án hợp lệ cách nhau bởi '/' hoặc '|' (ví dụ: 'center / centre')
         """
-        if not user_ans or not user_ans.strip():
+        if not user_ans or not str(user_ans).strip():
             return False, 0.0
 
-        user_clean = user_ans.strip()
+        user_clean = str(user_ans).strip()
 
         # 1. Trắc nghiệm A, B, C, D đơn giản
         if self.question_type == 'single_choice' and len(self.correct_answer.strip()) <= 2:
@@ -122,7 +145,7 @@ class Question(db.Model):
                 return True, self.points
             return False, 0.0
 
-        # 2. Điền từ vựng hoặc viết 1 câu
+        # 2. Chuẩn hóa chuỗi để so sánh
         def normalize(s):
             if not s:
                 return ''
@@ -137,6 +160,24 @@ class Question(db.Model):
         for cand in candidates:
             if user_norm == normalize(cand):
                 return True, self.points
+
+        # Nếu thí sinh nộp ký tự A/B/C/D hoặc số thứ tự lựa chọn khi đáp án đúng là câu văn
+        if self.question_type == 'single_choice' and self.options:
+            opts = self.options
+            if len(user_clean) == 1 and user_clean.upper() in 'ABCDEFGH':
+                idx = ord(user_clean.upper()) - 65
+                if 0 <= idx < len(opts):
+                    selected_opt_norm = normalize(opts[idx])
+                    for cand in candidates:
+                        if selected_opt_norm == normalize(cand):
+                            return True, self.points
+            elif user_clean.isdigit():
+                idx = int(user_clean)
+                if 0 <= idx < len(opts):
+                    selected_opt_norm = normalize(opts[idx])
+                    for cand in candidates:
+                        if selected_opt_norm == normalize(cand):
+                            return True, self.points
 
         return False, 0.0
 

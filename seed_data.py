@@ -370,3 +370,10 @@ def seed_database(app):
         else:
             print("Database already has tests. Skipping test seeding.")
 
+        # Ensure sample interactive test exists
+        try:
+            from seed_interactive_test import seed_interactive
+            seed_interactive()
+        except Exception as e:
+            print(f"Notice seeding interactive test: {e}")
+

@@ -123,19 +123,21 @@
                             Câu số {{ ans.question_number }}
                         </span>
                         
-                        <!-- Slide preview pill -->
-                        {% if slides and ans.slide_number <= slides|length %}
-                        <button 
-                            type="button" 
-                            onclick="previewSlideModal('{{ url_for('static', filename=slides[ans.slide_number - 1]) }}', {{ ans.slide_number }})"
-                            class="inline-flex items-center space-x-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition"
-                            title="Nhấp để phóng to xem slide PowerPoint của câu này"
-                        >
-                            <i data-lucide="image" class="w-3.5 h-3.5"></i>
-                            <span>Xem Slide #{{ ans.slide_number }}</span>
-                        </button>
-                        {% else %}
-                        <span class="text-xs text-slate-400 font-mono">Slide #{{ ans.slide_number }}</span>
+                        <!-- Slide preview pill (only for slide-based tests) -->
+                        {% if not test.is_interactive %}
+                            {% if slides and ans.slide_number <= slides|length %}
+                            <button 
+                                type="button" 
+                                onclick="previewSlideModal('{{ url_for('static', filename=slides[ans.slide_number - 1]) }}', {{ ans.slide_number }})"
+                                class="inline-flex items-center space-x-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition"
+                                title="Nhấp để phóng to xem slide PowerPoint của câu này"
+                            >
+                                <i data-lucide="image" class="w-3.5 h-3.5"></i>
+                                <span>Xem Slide #{{ ans.slide_number }}</span>
+                            </button>
+                            {% else %}
+                            <span class="text-xs text-slate-400 font-mono">Slide #{{ ans.slide_number }}</span>
+                            {% endif %}
                         {% endif %}
                     </div>
 
@@ -153,6 +155,42 @@
                         {% endif %}
                     </div>
                 </div>
+
+                {% set q = q_map.get(ans.question_id) if q_map else None %}
+                {% if q and q.question_type == 'dropdown_cloze' %}
+                <div class="p-3 bg-white/90 rounded-xl border border-slate-200/80 mb-3 text-sm sm:text-base leading-relaxed">
+                    <span class="font-bold text-emerald-600 mr-1.5">•</span>
+                    <span>{{ q.cloze_data[0] }}</span>
+                    <span class="inline-block px-2.5 py-0.5 rounded-lg font-bold mx-1 border {% if ans.is_correct %}bg-emerald-100 text-emerald-900 border-emerald-300{% else %}bg-rose-100 text-rose-900 border-rose-300 line-through{% endif %}">
+                        {{ ans.user_answer }}
+                    </span>
+                    <span>{{ q.cloze_data[2] }}</span>
+                </div>
+                {% elif q and q.question_type == 'single_choice' and q.options|length > 0 and q.options[0]|length > 2 %}
+                <div class="space-y-2 mb-3">
+                    {% if q.question_text %}
+                    <p class="text-sm font-semibold text-slate-900 mb-2">{{ q.question_text }}</p>
+                    {% endif %}
+                    {% for opt in q.options %}
+                    <div class="flex items-center p-2.5 rounded-xl border text-xs sm:text-sm transition
+                        {% if opt == ans.correct_answer %}
+                            bg-emerald-50/80 border-emerald-400 font-semibold text-emerald-950
+                        {% elif opt == ans.user_answer and not ans.is_correct %}
+                            bg-rose-50/80 border-rose-300 text-rose-900 line-through
+                        {% else %}
+                            bg-white/60 border-slate-200 text-slate-700 opacity-80
+                        {% endif %}">
+                        <span class="w-4 h-4 rounded-full flex items-center justify-center mr-2 text-[10px] border
+                            {% if opt == ans.correct_answer %}bg-emerald-600 border-emerald-600 text-white{% elif opt == ans.user_answer and not ans.is_correct %}bg-rose-500 border-rose-500 text-white{% else %}border-slate-300 bg-white{% endif %}">
+                            {% if opt == ans.correct_answer %}✓{% elif opt == ans.user_answer and not ans.is_correct %}✗{% endif %}
+                        </span>
+                        <span>{{ opt }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% elif q and q.question_text %}
+                <p class="text-sm text-slate-700 mb-2 font-medium">{{ q.question_text }}</p>
+                {% endif %}
 
                 <!-- Answer Comparison Table Grid -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white/80 p-3.5 rounded-xl border border-slate-200/80">

@@ -79,6 +79,17 @@
                 <span>Số câu sai: <strong class="text-rose-600 font-bold">{{ submission.wrong_count }}</strong></span>
                 <span>Chưa chọn: <strong class="text-slate-600 font-bold">{{ submission.unanswered_count }}</strong></span>
                 <span>Tổng điểm: <strong class="text-indigo-600 font-bold">{{ submission.score }}</strong></span>
+                {% if submission.tab_switch_count and submission.tab_switch_count > 0 %}
+                <span class="px-2.5 py-0.5 rounded-lg bg-rose-100 text-rose-800 font-bold border border-rose-200 inline-flex items-center space-x-1">
+                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-600"></i>
+                    <span>Rời tab: <strong>{{ submission.tab_switch_count }} lần</strong></span>
+                </span>
+                {% else %}
+                <span class="px-2.5 py-0.5 rounded-lg bg-emerald-100 text-emerald-800 font-bold border border-emerald-200 inline-flex items-center space-x-1">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-600"></i>
+                    <span>Rời tab: <strong>0 lần</strong></span>
+                </span>
+                {% endif %}
             </div>
             <div class="flex items-center space-x-3">
                 <button onclick="window.print()" class="text-indigo-600 hover:underline flex items-center space-x-1">

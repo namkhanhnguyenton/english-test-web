@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initTimer();
     initAudioPlayer();
     updateAnsweredCount();
+    initAntiCheat();
 });
 
 /* ==========================================================
@@ -356,7 +357,213 @@ function closeModal() {
 }
 
 function finalizeSubmit() {
+    isSubmitting = true;
     closeModal();
     if (timerInterval) clearInterval(timerInterval);
     document.getElementById('exam-form').submit();
+}
+
+/* ==========================================================
+   ANTI-CHEAT & TAB SWITCH PREVENTION MODULE
+========================================================== */
+
+let tabSwitchCount = 0;
+const MAX_ALLOWED_SWITCHES = 3;
+let isSubmitting = false;
+let lastSwitchTime = 0;
+let antiCheatActive = false;
+let toastTimeout = null;
+
+function initAntiCheat() {
+    // Kích hoạt sau 1.5 giây khi vào trang
+    setTimeout(() => {
+        antiCheatActive = true;
+    }, 1500);
+
+    // 1. Lắng nghe sự kiện chuyển tab (visibilitychange)
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            handleTabSwitch('visibilitychange');
+        }
+    });
+
+    // 2. Lắng nghe sự kiện mất tiêu điểm cửa sổ (window blur: Alt+Tab, mở app khác)
+    window.addEventListener('blur', () => {
+        handleTabSwitch('blur');
+    });
+
+    // 3. Khóa chuột phải (contextmenu)
+    document.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showAntiCheatToast("Thao tác chuột phải bị khóa trong phòng thi!");
+        return false;
+    });
+
+    // 4. Khóa sao chép câu hỏi (copy, cut)
+    document.addEventListener('copy', (e) => {
+        const tag = (e.target.tagName || '').toUpperCase();
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+            e.preventDefault();
+            showAntiCheatToast("Không được phép sao chép câu hỏi khi làm bài!");
+            return false;
+        }
+    });
+
+    document.addEventListener('cut', (e) => {
+        const tag = (e.target.tagName || '').toUpperCase();
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    // 5. Khóa các phím tắt gian lận: F12, Ctrl+U, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+P, Ctrl+S
+    document.addEventListener('keydown', (e) => {
+        // F12
+        if (e.key === 'F12') {
+            e.preventDefault();
+            showAntiCheatToast("Phím F12 bị vô hiệu hóa trong phòng thi!");
+            return false;
+        }
+        // Ctrl+Shift+I / J / C (DevTools)
+        if (e.ctrlKey && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key)) {
+            e.preventDefault();
+            showAntiCheatToast("Công cụ kiểm tra phần tử bị vô hiệu hóa!");
+            return false;
+        }
+        // Ctrl+U (View Source)
+        if (e.ctrlKey && (e.key === 'u' || e.key === 'U')) {
+            e.preventDefault();
+            showAntiCheatToast("Xem mã nguồn bị vô hiệu hóa!");
+            return false;
+        }
+        // Ctrl+P (Print)
+        if (e.ctrlKey && (e.key === 'p' || e.key === 'P')) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    // 6. Cảnh báo trước khi đóng tab hoặc tải lại trang
+    window.addEventListener('beforeunload', (e) => {
+        if (!isSubmitting) {
+            e.preventDefault();
+            e.returnValue = 'Bạn đang trong quá trình làm bài thi. Rời trang sẽ mất kết quả!';
+            return e.returnValue;
+        }
+    });
+}
+
+function handleTabSwitch(source) {
+    if (!antiCheatActive || isSubmitting) return;
+
+    const now = Date.now();
+    // Chống đếm đúp trong 2.5 giây khi cả blur và visibilitychange cùng kích hoạt
+    if (now - lastSwitchTime < 2500) return;
+    lastSwitchTime = now;
+
+    tabSwitchCount++;
+
+    // Cập nhật giá trị vào hidden inputs của form
+    const inputs = document.querySelectorAll('input[name="tab_switch_count"]');
+    inputs.forEach(inp => inp.value = tabSwitchCount);
+
+    // Cập nhật badge trên thanh tiêu đề
+    const countEl = document.getElementById('tab-warning-count');
+    const badgeEl = document.getElementById('proctor-badge');
+    const iconEl = document.getElementById('proctor-icon');
+    if (countEl) {
+        countEl.innerText = `${tabSwitchCount}/${MAX_ALLOWED_SWITCHES}`;
+    }
+    if (badgeEl) {
+        if (tabSwitchCount >= MAX_ALLOWED_SWITCHES) {
+            badgeEl.className = "flex items-center space-x-1.5 px-3 py-1.5 bg-rose-600 text-white border border-rose-700 rounded-xl text-xs font-bold transition-all shadow-md animate-pulse";
+            if (iconEl) iconEl.className = "w-4 h-4 text-white";
+        } else {
+            badgeEl.className = "flex items-center space-x-1.5 px-3 py-1.5 bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold transition-all shadow-xs";
+            if (iconEl) iconEl.className = "w-4 h-4 text-amber-600";
+        }
+    }
+
+    // Phát âm thanh cảnh báo còi vi phạm
+    playWarningSound();
+
+    if (tabSwitchCount >= MAX_ALLOWED_SWITCHES) {
+        // Vi phạm 3 lần: Khóa bài thi và nộp ngay lập tức!
+        const fatalModal = document.getElementById('tab-fatal-modal');
+        const warnModal = document.getElementById('tab-warning-modal');
+        if (warnModal) warnModal.classList.add('hidden');
+        if (fatalModal) fatalModal.classList.remove('hidden');
+
+        isSubmitting = true;
+        setTimeout(() => {
+            if (timerInterval) clearInterval(timerInterval);
+            document.getElementById('exam-form').submit();
+        }, 3000);
+    } else {
+        // Hiển thị popup cảnh báo
+        const warnModal = document.getElementById('tab-warning-modal');
+        const ratioEl = document.getElementById('tab-warning-modal-ratio');
+        const progressEl = document.getElementById('tab-warning-progress');
+        if (ratioEl) ratioEl.innerText = `${tabSwitchCount} / ${MAX_ALLOWED_SWITCHES} LẦN`;
+        if (progressEl) progressEl.style.width = `${(tabSwitchCount / MAX_ALLOWED_SWITCHES) * 100}%`;
+        if (warnModal) warnModal.classList.remove('hidden');
+    }
+}
+
+function dismissTabWarning() {
+    const warnModal = document.getElementById('tab-warning-modal');
+    if (warnModal) warnModal.classList.add('hidden');
+}
+
+function playWarningSound() {
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(520, ctx.currentTime);
+        osc.frequency.setValueAtTime(780, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.45);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.45);
+    } catch(e) {}
+}
+
+function showAntiCheatToast(msg) {
+    const toast = document.getElementById('anti-cheat-toast');
+    const msgEl = document.getElementById('anti-cheat-toast-msg');
+    if (!toast || !msgEl) return;
+
+    msgEl.innerText = msg;
+    toast.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-6');
+    toast.classList.add('opacity-100', 'translate-y-0');
+
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'pointer-events-none', '-translate-y-6');
+    }, 2800);
+}
+
+function requestExamFullscreen() {
+    const docEl = document.documentElement;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (docEl.requestFullscreen) {
+            docEl.requestFullscreen().catch(() => {});
+        } else if (docEl.webkitRequestFullscreen) {
+            docEl.webkitRequestFullscreen();
+        }
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+        }
+    }
 }

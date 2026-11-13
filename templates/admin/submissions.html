@@ -119,6 +119,12 @@
                                             <span class="truncate max-w-[170px]">{{ sub.student_email }}</span>
                                         </span>
                                         {% endif %}
+                                        {% if sub.tab_switch_count and sub.tab_switch_count > 0 %}
+                                        <span class="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 mt-0.5 w-fit" title="Hệ thống phát hiện thí sinh rời tab khi làm bài">
+                                            <i data-lucide="alert-triangle" class="w-3 h-3 text-rose-500"></i>
+                                            <span>Rời tab: {{ sub.tab_switch_count }} lần</span>
+                                        </span>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>

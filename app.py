@@ -28,6 +28,14 @@ db.init_app(app)
 
 with app.app_context():
     db.create_all()
+    # Migration: đảm bảo có cột tab_switch_count trong bảng submissions
+    try:
+        from sqlalchemy import text
+        with db.engine.connect() as conn:
+            conn.execute(text("ALTER TABLE submissions ADD COLUMN tab_switch_count INTEGER DEFAULT 0"))
+            conn.commit()
+    except Exception:
+        pass
     try:
         from seed_data import seed_database
         seed_database(app)
@@ -421,6 +429,7 @@ def submit_test(test_id):
     student_phone = request.form.get('student_phone', '').strip() or session.get('student_phone') or None
     student_email = request.form.get('student_email', '').strip() or session.get('student_email') or None
     time_taken_seconds = int(request.form.get('time_taken_seconds', 0))
+    tab_switch_count = int(request.form.get('tab_switch_count', 0))
 
     # Lưu lại vào session để học viên không phải nhập lại lần sau
     session['student_name'] = student_name
@@ -442,7 +451,8 @@ def submit_test(test_id):
         student_phone=student_phone,
         student_email=student_email,
         total_questions=len(questions),
-        time_taken_seconds=time_taken_seconds
+        time_taken_seconds=time_taken_seconds,
+        tab_switch_count=tab_switch_count
     )
     db.session.add(submission)
     db.session.flush()

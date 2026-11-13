@@ -47,6 +47,21 @@
                     <span>• Email: <span class="text-indigo-200">{{ submission.student_email }}</span></span>
                     {% endif %}
                 </div>
+
+                <!-- Anti-Cheat Status Badge -->
+                <div class="mt-3">
+                    {% if submission.tab_switch_count and submission.tab_switch_count > 0 %}
+                    <span class="inline-flex items-center space-x-1.5 px-3.5 py-1 bg-rose-500/30 backdrop-blur-md rounded-full text-xs font-bold text-rose-100 border border-rose-300/40">
+                        <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-300"></i>
+                        <span>Cảnh báo giám sát: Đã rời màn hình {{ submission.tab_switch_count }} lần trong khi thi</span>
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center space-x-1.5 px-3.5 py-1 bg-emerald-500/20 backdrop-blur-md rounded-full text-xs font-bold text-emerald-100 border border-emerald-300/40">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-300"></i>
+                        <span>Giám sát thi: Làm bài nghiêm túc (0 lần chuyển tab)</span>
+                    </span>
+                    {% endif %}
+                </div>
             </div>
         </div>
 

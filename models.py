@@ -200,6 +200,7 @@ class Submission(db.Model):
     percentage = db.Column(db.Float, default=0.0)
     is_passed = db.Column(db.Boolean, default=False)
     time_taken_seconds = db.Column(db.Integer, default=0)
+    tab_switch_count = db.Column(db.Integer, default=0)  # Số lần thí sinh rời tab / đổi cửa sổ khi làm bài
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     answers = db.relationship('SubmissionAnswer', backref='submission', lazy=True, cascade='all, delete-orphan', order_by='SubmissionAnswer.question_number')

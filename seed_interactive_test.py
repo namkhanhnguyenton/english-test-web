@@ -182,8 +182,86 @@ def seed_interactive():
 
         db.session.commit()
         print(f"Created sample interactive test successfully! ID: {test.id}, Total questions: {len(questions_data)}")
+        
+        # Seed missing tests for A2 and B2
+        seed_missing_level_tests()
         return test.id
+
+def seed_missing_level_tests():
+    with app.app_context():
+        # A2
+        lvl_a2 = Level.query.filter_by(code='A2').first()
+        if lvl_a2 and not any(t.is_active for t in lvl_a2.tests):
+            t_a2 = Test(
+                level_id=lvl_a2.id,
+                title="Đề Thi Trực Tuyến: Giao Tiếp & Từ Vựng Căn Bản A2",
+                description="Bài kiểm tra trực tuyến trình độ A2 đánh giá khả năng phản xạ và từ vựng thông dụng.",
+                test_format='interactive',
+                time_limit_minutes=15,
+                total_questions=5,
+                pass_percentage=50,
+                is_active=True
+            )
+            db.session.add(t_a2)
+            db.session.commit()
+            q_list_a2 = [
+                {"num": 1, "type": "dropdown_cloze", "text": "She usually travels to school by [bus] every morning.", "correct": "bus", "opts": ["bus", "train", "plane", "boat"]},
+                {"num": 2, "type": "dropdown_cloze", "text": "My brother is very keen on [playing] football on weekends.", "correct": "playing", "opts": ["playing", "listening", "reading", "cooking"]},
+                {"num": 3, "type": "single_choice", "text": "Where were you born? - \"I was born in Da Nang city.\"", "correct": "I was born in Da Nang city.", "opts": ["I was born in Da Nang city.", "I am born tomorrow.", "I live here.", "I like Da Nang."]},
+                {"num": 4, "type": "single_choice", "text": "How often do you go to the cinema? - \"Once a week.\"", "correct": "Once a week.", "opts": ["Once a week.", "One time yesterday.", "I go cinema.", "Yes, I often."]},
+                {"num": 5, "type": "single_choice", "text": "Can I help you with your suitcase? - \"Yes, please. That's very kind of you.\"", "correct": "Yes, please. That's very kind of you.", "opts": ["Yes, please. That's very kind of you.", "No, I am suitcase.", "It is a heavy bag.", "You are welcome."]}
+            ]
+            for q in q_list_a2:
+                q_obj = Question(
+                    test_id=t_a2.id,
+                    question_number=q["num"],
+                    question_text=q["text"],
+                    question_type=q["type"],
+                    options_json=json.dumps(q["opts"]),
+                    correct_answer=q["correct"],
+                    points=1.0
+                )
+                db.session.add(q_obj)
+            db.session.commit()
+            print(f"Created A2 test: ID {t_a2.id}")
+
+        # B2
+        lvl_b2 = Level.query.filter_by(code='B2').first()
+        if lvl_b2 and not any(t.is_active for t in lvl_b2.tests):
+            t_b2 = Test(
+                level_id=lvl_b2.id,
+                title="Đề Thi Trực Tuyến: Năng Lực Trung Cấp Cao B2",
+                description="Bài kiểm tra trực tuyến trình độ B2 đánh giá ngữ pháp nâng cao, mệnh đề và từ vựng học thuật.",
+                test_format='interactive',
+                time_limit_minutes=20,
+                total_questions=5,
+                pass_percentage=60,
+                is_active=True
+            )
+            db.session.add(t_b2)
+            db.session.commit()
+            q_list_b2 = [
+                {"num": 1, "type": "dropdown_cloze", "text": "Despite the heavy rain, the flight [departed] strictly on schedule.", "correct": "departed", "opts": ["departed", "arrived", "cancelled", "delayed"]},
+                {"num": 2, "type": "dropdown_cloze", "text": "The scientist was praised for making a major [breakthrough] in renewable energy.", "correct": "breakthrough", "opts": ["breakthrough", "failure", "obstacle", "reduction"]},
+                {"num": 3, "type": "single_choice", "text": "Hardly had he arrived home ___ the telephone rang.", "correct": "when", "opts": ["when", "than", "then", "after"]},
+                {"num": 4, "type": "single_choice", "text": "It is essential that every candidate ___ the safety instructions carefully.", "correct": "follow", "opts": ["follow", "follows", "followed", "following"]},
+                {"num": 5, "type": "single_choice", "text": "Had she known about the meeting, she ___ in advance.", "correct": "would have prepared", "opts": ["would have prepared", "will prepare", "prepared", "had prepared"]}
+            ]
+            for q in q_list_b2:
+                q_obj = Question(
+                    test_id=t_b2.id,
+                    question_number=q["num"],
+                    question_text=q["text"],
+                    question_type=q["type"],
+                    options_json=json.dumps(q["opts"]),
+                    correct_answer=q["correct"],
+                    points=1.0
+                )
+                db.session.add(q_obj)
+            db.session.commit()
+            print(f"Created B2 test: ID {t_b2.id}")
 
 if __name__ == '__main__':
     seed_interactive()
+    seed_missing_level_tests()
 

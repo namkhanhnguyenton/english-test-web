@@ -109,7 +109,7 @@
                 <!-- Action Button -->
                 <div>
                     {% if lvl.active_tests_count > 0 %}
-                    <button type="button" onclick="promptCandidateBeforeTest('{{ url_for('random_test_by_level', level_id=lvl.id) }}')" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm flex items-center justify-center space-x-2 shadow-md shadow-indigo-100 hover:shadow-indigo-200 transition-all">
+                    <button type="button" data-url="{{ url_for('random_test_by_level', level_id=lvl.id) }}" onclick="promptCandidateBeforeTest(this.dataset.url)" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm flex items-center justify-center space-x-2 shadow-md shadow-indigo-100 hover:shadow-indigo-200 transition-all cursor-pointer">
                         <i data-lucide="play" class="w-4 h-4 fill-white"></i>
                         <span>Làm bài ngay (Đề ngẫu nhiên)</span>
                     </button>

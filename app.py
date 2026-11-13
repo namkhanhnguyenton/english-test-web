@@ -207,7 +207,7 @@ def parse_interactive_questions(bulk_text):
             correct_word = bracket_match.group(1).strip()
             sentence_lines = [l for l in lines if l != options_line]
             sentence_text = " ".join(sentence_lines)
-            sentence_text = re.sub(r'^(?:Câu|Question|\#)?\s*\d+[\.\:\)\ counsel\/\-]\s*', '', sentence_text, flags=re.IGNORECASE).strip()
+            sentence_text = re.sub(r'^(?:Câu|Question|\#)?\s*\d+[\.\:\)\/\-]\s*', '', sentence_text, flags=re.IGNORECASE).strip()
 
             options = []
             if options_line:
@@ -265,7 +265,7 @@ def parse_interactive_questions(bulk_text):
                     q_lines.append(l)
 
             q_text = " ".join(q_lines)
-            q_text = re.sub(r'^(?:Câu|Question|\#)?\s*\d+[\.\:\)\ counsel\/\-]\s*', '', q_text, flags=re.IGNORECASE).strip()
+            q_text = re.sub(r'^(?:Câu|Question|\#)?\s*\d+[\.\:\)\/\-]\s*', '', q_text, flags=re.IGNORECASE).strip()
 
             if not correct_val and explicit_answer:
                 letter_idx = ord(explicit_answer.upper()[0]) - 65
@@ -297,7 +297,7 @@ def parse_interactive_questions(bulk_text):
                 else:
                     q_lines.append(l)
             q_text = " ".join(q_lines)
-            q_text = re.sub(r'^(?:Câu|Question|\#)?\s*\d+[\.\:\)\ counsel\/\-]\s*', '', q_text, flags=re.IGNORECASE).strip()
+            q_text = re.sub(r'^(?:Câu|Question|\#)?\s*\d+[\.\:\)\/\-]\s*', '', q_text, flags=re.IGNORECASE).strip()
             
             parsed_questions.append({
                 'num': idx,

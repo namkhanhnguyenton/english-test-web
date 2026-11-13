@@ -721,20 +721,6 @@
             openCandidateModal();
         }
     });
-
-    // Bổ sung kiểm tra trước khi submit thực tế
-    const origFinalizeSubmit = finalizeSubmit;
-    finalizeSubmit = function() {
-        const nameVal = document.getElementById('input-student-name').value.trim();
-        const phoneVal = document.getElementById('input-student-phone').value.trim();
-        if (!nameVal || !phoneVal) {
-            closeModal();
-            alert("Vui lòng nhập Họ tên và Số điện thoại trước khi nộp bài để hệ thống ghi nhận kết quả!");
-            openCandidateModal();
-            return;
-        }
-        origFinalizeSubmit();
-    };
 </script>
 <script src="{{ url_for('static', filename='js/test_taker.js') }}"></script>
 {% endblock %}

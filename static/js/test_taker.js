@@ -8,6 +8,7 @@ let timeLimitMinutes = typeof TIME_LIMIT_MINUTES !== 'undefined' ? TIME_LIMIT_MI
 let timeRemainingSeconds = timeLimitMinutes * 60;
 let timeElapsedSeconds = 0;
 let timerInterval = null;
+let isSubmitting = false;
 
 document.addEventListener('DOMContentLoaded', () => {
     initSlideViewer();
@@ -353,14 +354,32 @@ function confirmSubmit() {
 }
 
 function closeModal() {
-    document.getElementById('submit-modal').classList.add('hidden');
+    const modal = document.getElementById('submit-modal');
+    if (modal) modal.classList.add('hidden');
 }
 
 function finalizeSubmit() {
+    const nameInput = document.getElementById('input-student-name');
+    const phoneInput = document.getElementById('input-student-phone');
+    const nameVal = nameInput ? nameInput.value.trim() : '';
+    const phoneVal = phoneInput ? phoneInput.value.trim() : '';
+
+    if (!nameVal || !phoneVal) {
+        closeModal();
+        alert("Vui lòng nhập Họ tên và Số điện thoại trước khi nộp bài để hệ thống ghi nhận kết quả!");
+        if (typeof openCandidateModal === 'function') {
+            openCandidateModal();
+        }
+        return;
+    }
+
     isSubmitting = true;
     closeModal();
     if (timerInterval) clearInterval(timerInterval);
-    document.getElementById('exam-form').submit();
+    const form = document.getElementById('exam-form');
+    if (form) {
+        form.submit();
+    }
 }
 
 /* ==========================================================
@@ -369,30 +388,34 @@ function finalizeSubmit() {
 
 let tabSwitchCount = 0;
 const MAX_ALLOWED_SWITCHES = 3;
-let isSubmitting = false;
 let lastSwitchTime = 0;
 let antiCheatActive = false;
 let toastTimeout = null;
 
 function initAntiCheat() {
-    // Kích hoạt sau 1.5 giây khi vào trang
+    // Kích hoạt sau 2 giây khi vào trang để tránh các sự kiện khởi tạo ban đầu
     setTimeout(() => {
         antiCheatActive = true;
-    }, 1500);
+    }, 2000);
 
-    // 1. Lắng nghe sự kiện chuyển tab (visibilitychange)
+    // 1. Lắng nghe sự kiện chuyển tab (visibilitychange - chuẩn 100% trên mọi trình duyệt)
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
             handleTabSwitch('visibilitychange');
         }
     });
 
-    // 2. Lắng nghe sự kiện mất tiêu điểm cửa sổ (window blur: Alt+Tab, mở app khác)
+    // 2. Lắng nghe sự kiện mất tiêu điểm cửa sổ (window blur: Alt+Tab, mở ứng dụng khác)
     window.addEventListener('blur', () => {
-        handleTabSwitch('blur');
+        // Trì hoãn nhẹ 250ms để lọc bỏ các sự kiện ảo khi nhấp chọn menu dropdown <select> hoặc popup
+        setTimeout(() => {
+            if (document.hidden || !document.hasFocus()) {
+                handleTabSwitch('blur');
+            }
+        }, 250);
     });
 
-    // 3. Khóa chuột phải (contextmenu)
+    // 3. Khóa chuột phải trong phòng thi
     document.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         showAntiCheatToast("Thao tác chuột phải bị khóa trong phòng thi!");
@@ -417,34 +440,30 @@ function initAntiCheat() {
         }
     });
 
-    // 5. Khóa các phím tắt gian lận: F12, Ctrl+U, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+P, Ctrl+S
+    // 5. Khóa các phím tắt gian lận: F12, Ctrl+U, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+P
     document.addEventListener('keydown', (e) => {
-        // F12
         if (e.key === 'F12') {
             e.preventDefault();
             showAntiCheatToast("Phím F12 bị vô hiệu hóa trong phòng thi!");
             return false;
         }
-        // Ctrl+Shift+I / J / C (DevTools)
         if (e.ctrlKey && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key)) {
             e.preventDefault();
             showAntiCheatToast("Công cụ kiểm tra phần tử bị vô hiệu hóa!");
             return false;
         }
-        // Ctrl+U (View Source)
         if (e.ctrlKey && (e.key === 'u' || e.key === 'U')) {
             e.preventDefault();
             showAntiCheatToast("Xem mã nguồn bị vô hiệu hóa!");
             return false;
         }
-        // Ctrl+P (Print)
         if (e.ctrlKey && (e.key === 'p' || e.key === 'P')) {
             e.preventDefault();
             return false;
         }
     });
 
-    // 6. Cảnh báo trước khi đóng tab hoặc tải lại trang
+    // 6. Cảnh báo trước khi vô tình đóng tab hoặc tải lại trang
     window.addEventListener('beforeunload', (e) => {
         if (!isSubmitting) {
             e.preventDefault();
@@ -457,8 +476,23 @@ function initAntiCheat() {
 function handleTabSwitch(source) {
     if (!antiCheatActive || isSubmitting) return;
 
+    // Bỏ qua nếu các modal thông tin thí sinh hoặc modal nộp bài đang mở
+    const candModal = document.getElementById('modal-candidate-info');
+    if (candModal && !candModal.classList.contains('hidden')) return;
+
+    const subModal = document.getElementById('submit-modal');
+    if (subModal && !subModal.classList.contains('hidden')) return;
+
+    // Bỏ qua nếu người dùng chỉ đang thao tác trên các ô chọn lựa (dropdown <select>, input, button)
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl.tagName === 'SELECT' || activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+        if (!document.hidden) {
+            return;
+        }
+    }
+
     const now = Date.now();
-    // Chống đếm đúp trong 2.5 giây khi cả blur và visibilitychange cùng kích hoạt
+    // Chống đếm đúp trong 2.5 giây
     if (now - lastSwitchTime < 2500) return;
     lastSwitchTime = now;
 
@@ -478,10 +512,10 @@ function handleTabSwitch(source) {
     if (badgeEl) {
         if (tabSwitchCount >= MAX_ALLOWED_SWITCHES) {
             badgeEl.className = "flex items-center space-x-1.5 px-3 py-1.5 bg-rose-600 text-white border border-rose-700 rounded-xl text-xs font-bold transition-all shadow-md animate-pulse";
-            if (iconEl) iconEl.className = "w-4 h-4 text-white";
+            if (iconEl) iconEl.setAttribute('class', 'w-4 h-4 text-white');
         } else {
             badgeEl.className = "flex items-center space-x-1.5 px-3 py-1.5 bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold transition-all shadow-xs";
-            if (iconEl) iconEl.className = "w-4 h-4 text-amber-600";
+            if (iconEl) iconEl.setAttribute('class', 'w-4 h-4 text-amber-600');
         }
     }
 
@@ -498,7 +532,8 @@ function handleTabSwitch(source) {
         isSubmitting = true;
         setTimeout(() => {
             if (timerInterval) clearInterval(timerInterval);
-            document.getElementById('exam-form').submit();
+            const form = document.getElementById('exam-form');
+            if (form) form.submit();
         }, 3000);
     } else {
         // Hiển thị popup cảnh báo
@@ -514,6 +549,7 @@ function handleTabSwitch(source) {
 function dismissTabWarning() {
     const warnModal = document.getElementById('tab-warning-modal');
     if (warnModal) warnModal.classList.add('hidden');
+    lastSwitchTime = Date.now();
 }
 
 function playWarningSound() {
